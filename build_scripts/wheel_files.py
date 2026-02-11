@@ -903,6 +903,7 @@ def module_QtDataVisualization() -> ModuleData:
 
 def module_QtGraphs() -> ModuleData:
     data = ModuleData("Graphs")
+    data.qtlib.append("libQt6Graphs2DImpl")
 
     return data
 
