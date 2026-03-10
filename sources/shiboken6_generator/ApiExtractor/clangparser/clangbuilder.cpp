@@ -621,7 +621,8 @@ std::optional<TypeInfo>
     typeInfo.setConstant(clang_isConstQualifiedType(nestedType) != 0);
     typeInfo.setVolatile(clang_isVolatileQualifiedType(nestedType) != 0);
 
-    QString typeName = fixTypeName(getResolvedTypeName(nestedType));
+    QString typeName = fixTypeName(getResolvedTypeName(nestedType,
+                                                       m_baseVisitor->printingPolicy()));
 
     if (!checkTypeName(typeName)) {
         m_rejectedTypes.insert(typeName);
@@ -774,7 +775,7 @@ std::pair<QString, ClassModelItem> BuilderPrivate::getBaseClass(CXType type) con
 {
     const auto decl = resolveBaseClassType(type);
     // Note: spelling has "struct baseClass", use type
-    QString baseClassName = getTypeName(decl.type);
+    QString baseClassName = getTypeName(decl.type, m_baseVisitor->printingPolicy());
     if (baseClassName.startsWith(u"std::")) { // Simplify "std::" types
         if (auto typeO = createTypeInfo(decl.type))
             baseClassName = typeO.value().toString();
