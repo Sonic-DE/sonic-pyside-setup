@@ -1173,13 +1173,3 @@ QString msgOwnerThreadForNonQObject(const AbstractMetaClassCPtr &metaClass)
            + metaClass->name() + u'"';
 }
 
-QString msgRejectedTypes(const QStringList &rejectedTypes)
-{
-    QString result;
-    QTextStream str(&result);
-    str << "Rejected Types (" << rejectedTypes.size() << "):\n";
-    for (const auto &rejectedType : rejectedTypes)
-        str << "  \"" << rejectedType << "\"\n";
-    str << '\n';
-    return result;
-}
