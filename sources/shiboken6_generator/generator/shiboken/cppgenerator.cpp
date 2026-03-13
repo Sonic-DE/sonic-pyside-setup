@@ -5884,13 +5884,6 @@ QString CppGenerator::destructorFunction(const AbstractMetaClassCPtr &metaClass,
             : QString{NULL_PTR}; // Cannot call (happens with "disable-wrapper").
     }
 
-    if (usePySideExtensions()
-            && metaClass->deletionMode() == TypeSystem::DeletionMode::DeleteInQObjectOwnerThread) {
-        if (!isQObject(metaClass))
-            throw Exception(msgOwnerThreadForNonQObject(metaClass));
-         return u"deferredDeleteQObject"_s;
-    }
-
     return callCppDestructor(classContext, metaClass->qualifiedCppName());
 }
 
@@ -7391,3 +7384,4 @@ void CppGenerator::writeReprFunctionFooter(TextStream &s)
 {
     s << outdent << "}\n} // extern C\n\n";
 }
+
