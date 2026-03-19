@@ -442,6 +442,9 @@ TemplateParameterModelItem BuilderPrivate::createNonTypeTemplateParameter(const 
 // CXCursor_VarDecl, CXCursor_FieldDecl cursors
 void BuilderPrivate::addField(const CXCursor &cursor, bool staticField)
 {
+    auto typeO = createTypeInfo(cursor);
+    if (!typeO.has_value())
+        return;
     auto field = std::make_shared<_VariableModelItem>(getCursorSpelling(cursor));
     field->setAccessPolicy(accessPolicy(clang_getCXXAccessSpecifier(cursor)));
     field->setScope(m_scope);
@@ -544,8 +547,8 @@ static QString fixTypeName(QString typeName)
     return typeName;
 }
 
-TypeInfo BuilderPrivate::createTypeInfoUncached(const CXType &type,
-                                                bool *cacheable) const
+std::optional<TypeInfo>
+    BuilderPrivate::createTypeInfoUncached(const CXType &type, bool *cacheable) const
 {
     static constexpr QLatin1StringView exclusions[] = {
         "decltype("_L1, "std::declval"_L1, "::detail::"_L1, "std::enable_if<"_L1,
@@ -595,8 +598,23 @@ std::optional<TypeInfo>
 
     if (type.kind == CXType_Pointer) { // Check for function pointers, first.
         const CXType pointeeType = clang_getPointeeType(type);
-        if (pointeeType.kind == CXType_FunctionProto)
-            return createFunctionTypeInfo(pointeeType, TypeCategory::FunctionPointer, cacheable);
+        const int argCount = clang_getNumArgTypes(pointeeType);
+        if (argCount >= 0) {
+            auto resultO = createTypeInfoUncached(clang_getResultType(pointeeType), cacheable);
+            if (!resultO.has_value())
+                return std::nullopt;
+            auto result = resultO.value();
+            result.setTypeCategory(TypeCategory::Pointer);
+            result.setFunctionPointer(true);
+            for (int a = 0; a < argCount; ++a) {
+                auto argTypeInfoO =
+                    createTypeInfoUncached(clang_getArgType(pointeeType, unsigned(a)), cacheable);
+                if (!argTypeInfoO.has_value())
+                    return std::nullopt;
+                result.addArgument(argTypeInfoO.value());
+            }
+            return result;
+        }
     }
 
     TypeInfo typeInfo;
@@ -683,6 +701,9 @@ std::optional<TypeInfo> BuilderPrivate::createTypeInfo(const CXType &type) const
 void BuilderPrivate::addTypeDef(const CXCursor &cursor, const CXType &cxType)
 {
     const QString target = getCursorSpelling(cursor);
+    auto typeInfoO = createTypeInfo(cxType);
+    if (!typeInfoO.has_value())
+        return;
     auto item = std::make_shared<_TypeDefModelItem>(target);
     setFileName(cursor, item.get());
     item->setType(typeInfoO.value());
@@ -775,7 +796,7 @@ std::pair<QString, ClassModelItem> BuilderPrivate::getBaseClass(CXType type) con
 {
     const auto decl = resolveBaseClassType(type);
     // Note: spelling has "struct baseClass", use type
-    QString baseClassName = getTypeName(decl.type, m_baseVisitor->printingPolicy());
+    QString baseClassName = getTypeName(decl.type);
     if (baseClassName.startsWith(u"std::")) { // Simplify "std::" types
         if (auto typeO = createTypeInfo(decl.type))
             baseClassName = typeO.value().toString();
@@ -1125,7 +1146,11 @@ BaseVisitor::StartTokenResult Builder::startToken(const CXCursor &cursor)
         // Skip inline member functions outside class, only go by declarations inside class
         if (d->m_withinFriendDecl || !withinClassDeclaration(cursor))
             return Skip;
-        d->m_currentFunction = d->createMemberFunction(cursor, false);
+        auto func = d->createMemberFunction(cursor, false);
+        if (!func)
+            return Skip;
+        d->m_currentFunction = func;
+    }
         break;
     // Not fully supported, currently, seen as normal function
     // Note: May appear inside class (member template) or outside (free template).
@@ -1133,8 +1158,10 @@ BaseVisitor::StartTokenResult Builder::startToken(const CXCursor &cursor)
         const CXCursor semParent = clang_getCursorSemanticParent(cursor);
         if (isClassCursor(semParent)) {
             if (semParent == clang_getCursorLexicalParent(cursor)) {
-                d->m_currentFunction = d->createMemberFunction(cursor, true);
-                break;
+                if (auto func = d->createMemberFunction(cursor, true)) {
+                    d->m_currentFunction = func;
+                    break;
+                }
             }
             return Skip; // inline member functions outside class
         }
@@ -1143,13 +1170,17 @@ BaseVisitor::StartTokenResult Builder::startToken(const CXCursor &cursor)
             return Skip;
         d->m_currentFunction = func;
         d->setFileName(cursor, d->m_currentFunction.get());
+    }
         break;
     case CXCursor_FunctionDecl:
         // Free functions or functions completely defined within "friend" (class
         // operators). Note: CXTranslationUnit_SkipFunctionBodies must be off for
         // clang_isCursorDefinition() to work here.
         if (!d->m_withinFriendDecl || clang_isCursorDefinition(cursor) != 0) {
-            d->m_currentFunction = d->createFunction(cursor, CodeModel::Normal, false);
+            auto func = d->createFunction(cursor, CodeModel::Normal, false);
+            if (!func)
+                return Skip;
+            d->m_currentFunction = func;
             d->m_currentFunction->setHiddenFriend(d->m_withinFriendDecl);
         }
         break;
@@ -1180,7 +1211,6 @@ BaseVisitor::StartTokenResult Builder::startToken(const CXCursor &cursor)
         // and function pointer typedefs.
         if (!d->m_currentArgument && d->m_currentFunction) {
             const QString name = getCursorSpelling(cursor);
-            d->m_currentArgument = std::make_shared<_ArgumentModelItem>(name);
             const auto type = clang_getCursorType(cursor);
             auto typeO = d->createTypeInfo(type);
             if (!typeO.has_value()) {
@@ -1206,6 +1236,10 @@ BaseVisitor::StartTokenResult Builder::startToken(const CXCursor &cursor)
             ? d->createTemplateParameter(cursor) : d->createNonTypeTemplateParameter(cursor);
         // Apply to function/member template?
         if (d->m_currentFunction) {
+            if (!tItem) {
+                d->m_currentFunction.reset();
+                return Skip;
+            }
             d->m_currentFunction->addTemplateParameter(tItem);
         } else if (d->m_currentTemplateTypeAlias) {
             if (!tItem) {
@@ -1405,6 +1439,7 @@ bool Builder::endToken(const CXCursor &cursor)
 }
 
 } // namespace clang
+
 
 
 
