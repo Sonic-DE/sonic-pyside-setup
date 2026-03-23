@@ -1125,11 +1125,7 @@ BaseVisitor::StartTokenResult Builder::startToken(const CXCursor &cursor)
         // Skip inline member functions outside class, only go by declarations inside class
         if (d->m_withinFriendDecl || !withinClassDeclaration(cursor))
             return Skip;
-        auto func = d->createMemberFunction(cursor, false);
-        if (!func)
-            return Skip;
-        d->m_currentFunction = func;
-    }
+        d->m_currentFunction = d->createMemberFunction(cursor, false);
         break;
     // Not fully supported, currently, seen as normal function
     // Note: May appear inside class (member template) or outside (free template).
@@ -1137,10 +1133,8 @@ BaseVisitor::StartTokenResult Builder::startToken(const CXCursor &cursor)
         const CXCursor semParent = clang_getCursorSemanticParent(cursor);
         if (isClassCursor(semParent)) {
             if (semParent == clang_getCursorLexicalParent(cursor)) {
-                if (auto func = d->createMemberFunction(cursor, true)) {
-                    d->m_currentFunction = func;
-                    break;
-                }
+                d->m_currentFunction = d->createMemberFunction(cursor, true);
+                break;
             }
             return Skip; // inline member functions outside class
         }
@@ -1149,17 +1143,13 @@ BaseVisitor::StartTokenResult Builder::startToken(const CXCursor &cursor)
             return Skip;
         d->m_currentFunction = func;
         d->setFileName(cursor, d->m_currentFunction.get());
-    }
         break;
     case CXCursor_FunctionDecl:
         // Free functions or functions completely defined within "friend" (class
         // operators). Note: CXTranslationUnit_SkipFunctionBodies must be off for
         // clang_isCursorDefinition() to work here.
         if (!d->m_withinFriendDecl || clang_isCursorDefinition(cursor) != 0) {
-            auto func = d->createFunction(cursor, CodeModel::Normal, false);
-            if (!func)
-                return Skip;
-            d->m_currentFunction = func;
+            d->m_currentFunction = d->createFunction(cursor, CodeModel::Normal, false);
             d->m_currentFunction->setHiddenFriend(d->m_withinFriendDecl);
         }
         break;
@@ -1415,6 +1405,7 @@ bool Builder::endToken(const CXCursor &cursor)
 }
 
 } // namespace clang
+
 
 
 
