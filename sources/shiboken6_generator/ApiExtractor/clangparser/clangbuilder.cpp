@@ -1210,10 +1210,6 @@ BaseVisitor::StartTokenResult Builder::startToken(const CXCursor &cursor)
             ? d->createTemplateParameter(cursor) : d->createNonTypeTemplateParameter(cursor);
         // Apply to function/member template?
         if (d->m_currentFunction) {
-            if (!tItem) {
-                d->m_currentFunction.reset();
-                return Skip;
-            }
             d->m_currentFunction->addTemplateParameter(tItem);
         } else if (d->m_currentTemplateTypeAlias) {
             if (!tItem) {
@@ -1413,4 +1409,5 @@ bool Builder::endToken(const CXCursor &cursor)
 }
 
 } // namespace clang
+
 
