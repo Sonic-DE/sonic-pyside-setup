@@ -548,30 +548,6 @@ static QString fixTypeName(QString typeName)
 }
 
 std::optional<TypeInfo>
-    BuilderPrivate::createTypeInfoUncached(const CXType &type, bool *cacheable) const
-{
-    static constexpr QLatin1StringView exclusions[] = {
-        "decltype("_L1, "std::declval"_L1, "::detail::"_L1, "std::enable_if<"_L1,
-        "template "_L1, "..."_L1
-    };
-
-    auto excludedPred = [&name](QLatin1StringView ex) { return name.contains(ex); };
-    return std::none_of(std::begin(exclusions), std::end(exclusions), excludedPred);
-}
-
-static QString fixTypeName(QString typeName)
-{
-    while (TypeInfo::stripLeadingConst(&typeName) || TypeInfo::stripLeadingVolatile(&typeName)) {
-    }
-    static constexpr auto leadingTypename = "typename "_L1;
-    if (typeName.startsWith(leadingTypename))
-        typeName.remove(0, leadingTypename.size());
-    typeName.replace("<typename "_L1, "<"_L1);
-    typeName.replace(", typename "_L1, ", "_L1);
-    return typeName;
-}
-
-std::optional<TypeInfo>
     BuilderPrivate::createFunctionTypeInfo(const CXType &type, TypeCategory cat, bool *cacheable) const
 {
     const int argCount = clang_getNumArgTypes(type);
@@ -598,23 +574,8 @@ std::optional<TypeInfo>
 
     if (type.kind == CXType_Pointer) { // Check for function pointers, first.
         const CXType pointeeType = clang_getPointeeType(type);
-        const int argCount = clang_getNumArgTypes(pointeeType);
-        if (argCount >= 0) {
-            auto resultO = createTypeInfoUncached(clang_getResultType(pointeeType), cacheable);
-            if (!resultO.has_value())
-                return std::nullopt;
-            auto result = resultO.value();
-            result.setTypeCategory(TypeCategory::Pointer);
-            result.setFunctionPointer(true);
-            for (int a = 0; a < argCount; ++a) {
-                auto argTypeInfoO =
-                    createTypeInfoUncached(clang_getArgType(pointeeType, unsigned(a)), cacheable);
-                if (!argTypeInfoO.has_value())
-                    return std::nullopt;
-                result.addArgument(argTypeInfoO.value());
-            }
-            return result;
-        }
+        if (pointeeType.kind == CXType_FunctionProto)
+            return createFunctionTypeInfo(pointeeType, TypeCategory::FunctionPointer, cacheable);
     }
 
     TypeInfo typeInfo;
@@ -1439,6 +1400,7 @@ bool Builder::endToken(const CXCursor &cursor)
 }
 
 } // namespace clang
+
 
 
 
