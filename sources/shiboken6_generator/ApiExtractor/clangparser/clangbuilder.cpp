@@ -330,7 +330,7 @@ FunctionModelItem BuilderPrivate::createFunction(const CXCursor &cursor,
     QString name = getCursorSpelling(cursor);
     // Apply type fixes to "operator X &" -> "operator X&"
     if (name.startsWith(u"operator "))
-        name = fixTypeName(name);
+        name = fixOperatorTypeName(name);
     auto result = std::make_shared<_FunctionModelItem>(name);
     setFileName(cursor, result.get());
     const auto type = clang_getCursorResultType(cursor);
@@ -532,8 +532,20 @@ static TypeCategory typeCategoryFromClang(CXTypeKind k)
     return TypeCategory::Other;
 }
 
-// Reject decltype() expressions, template parameter packs, etc.
-static inline bool checkTypeName(const QString &name)
+static QString fixTypeName(QString typeName)
+{
+    while (TypeInfo::stripLeadingConst(&typeName) || TypeInfo::stripLeadingVolatile(&typeName)) {
+    }
+    static constexpr auto leadingTypename = "typename "_L1;
+    if (typeName.startsWith(leadingTypename))
+        typeName.remove(0, leadingTypename.size());
+    typeName.replace("<typename "_L1, "<"_L1);
+    typeName.replace(", typename "_L1, ", "_L1);
+    return typeName;
+}
+
+TypeInfo BuilderPrivate::createTypeInfoUncached(const CXType &type,
+                                                bool *cacheable) const
 {
     static constexpr QLatin1StringView exclusions[] = {
         "decltype("_L1, "std::declval"_L1, "::detail::"_L1, "std::enable_if<"_L1,
@@ -618,13 +630,7 @@ std::optional<TypeInfo>
     typeInfo.setConstant(clang_isConstQualifiedType(nestedType) != 0);
     typeInfo.setVolatile(clang_isVolatileQualifiedType(nestedType) != 0);
 
-    QString typeName = fixTypeName(getResolvedTypeName(nestedType,
-                                                       m_baseVisitor->printingPolicy()));
-
-    if (!checkTypeName(typeName)) {
-        m_rejectedTypes.insert(typeName);
-        return std::nullopt;
-    }
+    QString typeName = fixTypeName(getResolvedTypeName(nestedType));
 
     // For typedefs within templates or nested classes within templates (iterators):
     // "template <class T> class QList { using Value=T; .."
@@ -1409,5 +1415,6 @@ bool Builder::endToken(const CXCursor &cursor)
 }
 
 } // namespace clang
+
 
 
