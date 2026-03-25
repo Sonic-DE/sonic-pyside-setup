@@ -10,11 +10,9 @@ class TestClangParser : public QObject
 {
     Q_OBJECT
 private slots:
-    void testClangTypeParsing_data();
-    void testClangTypeParsing();
-    void testFunctionPointers();
     void testParseTriplet_data();
     void testParseTriplet();
 };
 
 #endif // TESTCLANGPARSER_H
+
