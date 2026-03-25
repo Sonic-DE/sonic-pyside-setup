@@ -330,7 +330,7 @@ FunctionModelItem BuilderPrivate::createFunction(const CXCursor &cursor,
     QString name = getCursorSpelling(cursor);
     // Apply type fixes to "operator X &" -> "operator X&"
     if (name.startsWith(u"operator "))
-        name = fixOperatorTypeName(name);
+        name = fixTypeName(name);
     auto result = std::make_shared<_FunctionModelItem>(name);
     setFileName(cursor, result.get());
     const auto type = clang_getCursorResultType(cursor);
@@ -442,9 +442,6 @@ TemplateParameterModelItem BuilderPrivate::createNonTypeTemplateParameter(const 
 // CXCursor_VarDecl, CXCursor_FieldDecl cursors
 void BuilderPrivate::addField(const CXCursor &cursor, bool staticField)
 {
-    auto typeO = createTypeInfo(cursor);
-    if (!typeO.has_value())
-        return;
     auto field = std::make_shared<_VariableModelItem>(getCursorSpelling(cursor));
     field->setAccessPolicy(accessPolicy(clang_getCXXAccessSpecifier(cursor)));
     field->setScope(m_scope);
@@ -680,9 +677,6 @@ std::optional<TypeInfo> BuilderPrivate::createTypeInfo(const CXType &type) const
 void BuilderPrivate::addTypeDef(const CXCursor &cursor, const CXType &cxType)
 {
     const QString target = getCursorSpelling(cursor);
-    auto typeInfoO = createTypeInfo(cxType);
-    if (!typeInfoO.has_value())
-        return;
     auto item = std::make_shared<_TypeDefModelItem>(target);
     setFileName(cursor, item.get());
     item->setType(typeInfoO.value());
@@ -1190,6 +1184,7 @@ BaseVisitor::StartTokenResult Builder::startToken(const CXCursor &cursor)
         // and function pointer typedefs.
         if (!d->m_currentArgument && d->m_currentFunction) {
             const QString name = getCursorSpelling(cursor);
+            d->m_currentArgument = std::make_shared<_ArgumentModelItem>(name);
             const auto type = clang_getCursorType(cursor);
             auto typeO = d->createTypeInfo(type);
             if (!typeO.has_value()) {
@@ -1418,3 +1413,4 @@ bool Builder::endToken(const CXCursor &cursor)
 }
 
 } // namespace clang
+
