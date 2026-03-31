@@ -36,6 +36,7 @@ class PdfViewer(AbstractViewer):
         icon = QIcon.fromTheme(QIcon.ThemeIcon.ZoomIn,
                                QIcon(":/demos/documentviewer/images/zoom-in.png"))
         self._actionZoomIn = QAction(self)
+        self._actionZoomIn.setText(self.tr("Zoom in"))
         self._actionZoomIn.setIcon(icon)
         self._actionZoomIn.setShortcut(QKeySequence.StandardKey.ZoomIn)
         self._actionZoomIn.setToolTip(self.tr("Increase zoom level"))
@@ -44,6 +45,7 @@ class PdfViewer(AbstractViewer):
         icon = QIcon.fromTheme(QIcon.ThemeIcon.ZoomOut,
                                QIcon(":/demos/documentviewer/images/zoom-out.png"))
         self._actionZoomOut = QAction(self)
+        self._actionZoomOut.setText(self.tr("Zoom in"))
         self._actionZoomOut.setIcon(icon)
         self._actionZoomOut.setShortcut(QKeySequence.StandardKey.ZoomOut)
         self._actionZoomOut.setToolTip(self.tr("Decrease zoom level"))
@@ -57,36 +59,8 @@ class PdfViewer(AbstractViewer):
     def supportedMimeTypes(self):
         return ["application/pdf"]
 
-    def cleanup(self):
-        super().cleanup()
-        del self._pageSelector
-        self._pageSelector = None
-        del self._zoomSelector
-        self._zoomSelector = None
-        del self._pages
-        self._pages = None
-        del self._bookmarks
-        self._bookmarks = None
-        del self._document
-        self._document = None
-
-    def retranslate(self):
-        if not self._toolBars:
-            return
-        self._toolBars[0].setWindowTitle(self.tr("PDF"))
-        self._actionZoomIn.setText(self.tr("Zoom in"))
-        self._actionZoomIn.setToolTip(self.tr("Increase zoom level"))
-        self._actionZoomOut.setText(self.tr("Zoom out"))
-        self._actionZoomOut.setToolTip(self.tr("Decrease zoom level"))
-        index = self._uiAssets_tabs.indexOf(self._pages)
-        if index >= 0:
-            self._uiAssets_tabs.setTabText(index, self.tr("Pages"))
-        index = self._uiAssets_tabs.indexOf(self._bookmarks)
-        if index >= 0:
-            self._uiAssets_tabs.setTabText(index, self.tr("Bookmarks"))
-
     def initPdfViewer(self):
-        toolBar = self.addToolBar()
+        toolBar = self.addToolBar("PDF")
         self._zoomSelector = ZoomSelector(toolBar)
 
         nav = self._pdfView.pageNavigator()
@@ -134,10 +108,8 @@ class PdfViewer(AbstractViewer):
         self._pages.selectionModel().currentRowChanged.connect(self._currentRowChanged)
         self._pdfView.pageNavigator().currentPageChanged.connect(self._pageChanged)
 
-        self._uiAssets_tabs.addTab(self._pages, "")
-        self._uiAssets_tabs.addTab(self._bookmarks, "")
-
-        self.retranslate()
+        self._uiAssets_tabs.addTab(self._pages, "Pages")
+        self._uiAssets_tabs.addTab(self._bookmarks, "Bookmarks")
 
     def viewerName(self):
         return "PdfViewer"
@@ -168,12 +140,12 @@ class PdfViewer(AbstractViewer):
 
         documentTitle = self._document.metaData(QPdfDocument.MetaDataField.Title)
         if not documentTitle:
-            documentTitle = self.tr("PDF Viewer")
+            documentTitle = "PDF Viewer"
         self.statusMessage(documentTitle)
         self.pageSelected(0)
 
         file_name = QDir.toNativeSeparators(self._file.fileName())
-        self.statusMessage(self.tr("Opened PDF file {}").format(file_name))
+        self.statusMessage(f"Opened PDF file {file_name}")
         self.maybeEnablePrinting()
 
     def hasContent(self):

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from PySide6.QtCore import QObject
 
-from PySide6.QtWidgets import QDialog, QMenu, QToolBar
-from PySide6.QtCore import QEvent, Signal, Slot
+from PySide6.QtWidgets import (QDialog, QMenu)
+from PySide6.QtCore import Signal, Slot
 from PySide6.QtPrintSupport import QPrinter, QPrintDialog
 
 
@@ -23,23 +23,17 @@ class AbstractViewer(QObject):
         super().__init__()
         self._file = None
         self._widget = None
-        self._uiAssets_mainWindow = None
         self._menus = []
         self._toolBars = []
         self._printingEnabled = False
         self._actions = []
         self._fileMenu = None
 
+    def __del__(self):
+        self.cleanup()
+
     def viewerName(self):
         return ""
-
-    def eventFilter(self, watched, event):
-        if event.type() == QEvent.Type.LanguageChange:
-            self.retranslate()
-        return False
-
-    def retranslate(self):
-        pass
 
     def saveState(self):
         return False
@@ -54,7 +48,6 @@ class AbstractViewer(QObject):
         self._file = file
         self._widget = widget
         self._uiAssets_mainWindow = mainWindow
-        mainWindow.installEventFilter(self)
 
     def isEmpty(self):
         return not self.hasContent()
@@ -114,15 +107,14 @@ class AbstractViewer(QObject):
         msg += ": " + message
         self.showMessage.emit(msg, timeout)
 
-    def addToolBar(self):
-        bar = QToolBar()
+    def addToolBar(self, title):
+        bar = self.mainWindow().addToolBar(title)
         bar.setObjectName(self.viewerName() + "ToolBar")
-        self.mainWindow().addToolBar(bar)
         self._toolBars.append(bar)
         return bar
 
-    def addMenu(self):
-        menu = QMenu(self.menuBar())
+    def addMenu(self, title):
+        menu = QMenu(title, self.menuBar())
         menu.setObjectName(self.viewerName() + "Menu")
         self.menuBar().insertMenu(self._uiAssets_help, menu)
         self._menus.append(menu)
@@ -133,13 +125,8 @@ class AbstractViewer(QObject):
         # and therefore parented on MainWindow
         if self._file:
             self._file = None
-        while self._menus:
-            del self._menus[0]
-        while self._toolBars:
-            self.mainWindow().removeToolBar(self._toolBars[0])
-            del self._toolBars[0]
-        if self._uiAssets_mainWindow:
-            self._uiAssets_mainWindow.removeEventFilter(self)
+        self._menus.clear()
+        self._toolBars.clear()
 
     def fileMenu(self):
         if self._fileMenu:
@@ -150,34 +137,34 @@ class AbstractViewer(QObject):
             if menu.objectName() == MENU_NAME:
                 self._fileMenu = menu
                 return self._fileMenu
-        self._fileMenu = self.addMenu(self.tr("&File"))
+        self._fileMenu = self.addMenu("File")
         self._fileMenu.setObjectName(MENU_NAME)
         return self._fileMenu
 
     @Slot()
     def print_(self):
-        type = self.tr("Printing")
+        type = "Printing"
         if not self.hasContent():
-            self.statusMessage(self.tr("No content to print."), type)
+            self.statusMessage("No content to print.", type)
             return
         printer = QPrinter(QPrinter.PrinterMode.HighResolution)
         dlg = QPrintDialog(printer, self.mainWindow())
-        dlg.setWindowTitle(self.tr("Print Document"))
+        dlg.setWindowTitle("Print Document")
         if dlg.exec() == QDialog.DialogCode.Accepted:
             self.printDocument(printer)
         else:
-            self.statusMessage(self.tr("Printing canceled!"), type)
+            self.statusMessage("Printing canceled!", type)
             return
         message = self.viewerName() + " :"
         match printer.printerState():
             case QPrinter.PrinterState.Aborted:
-                message += self.tr("Printing aborted.")
+                message += "Printing aborted."
             case QPrinter.PrinterState.Active:
-                message += self.tr("Printing active.")
+                message += "Printing active."
             case QPrinter.PrinterState.Idle:
-                message += self.tr("Printing completed.")
+                message += "Printing completed."
             case QPrinter.PrinterState.Error:
-                message += self.tr("Printing error.")
+                message += "Printing error."
         self.statusMessage(message, type)
 
     def maybeSetPrintingEnabled(self, enabled):

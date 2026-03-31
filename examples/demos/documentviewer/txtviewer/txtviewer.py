@@ -13,7 +13,6 @@ from abstractviewer import AbstractViewer
 class TxtViewer(AbstractViewer):
     def __init__(self):
         super().__init__()
-        self._textEdit = None
         self.uiInitialized.connect(self.setupTxtUi)
 
         cutIcon = QIcon.fromTheme(QIcon.ThemeIcon.EditCut,
@@ -47,27 +46,13 @@ class TxtViewer(AbstractViewer):
     def viewerName(self):
         return "TxtViewer"
 
-    def cleanup(self):
-        del self._textEdit
-        self._textEdit = None
-        super().cleanup()
-
     def supportedMimeTypes(self):
         return ["text/plain"]
 
-    def retranslate(self):
-        if not self._toolBars:
-            return
-        self._menus[0].setTitle(self.tr("Edit"))
-        self._toolBars[0].setWindowTitle(self.tr("Edit"))
-        self._cutAct.setText(self.tr("C&ut"))
-        self._copyAct.setText(self.tr("&Copy"))
-        self._pasteAct.setText(self.tr("&Paste"))
-
     @Slot()
     def setupTxtUi(self):
-        editMenu = self.addMenu()
-        editToolBar = self.addToolBar()
+        editMenu = self.addMenu("Edit")
+        editToolBar = self.addToolBar("Edit")
         editMenu.addAction(self._cutAct)
         editToolBar.addAction(self._cutAct)
         editMenu.addAction(self._copyAct)
@@ -85,7 +70,6 @@ class TxtViewer(AbstractViewer):
         self._textEdit.copyAvailable.connect(self._cutAct.setEnabled)
         self._textEdit.copyAvailable.connect(self._copyAct.setEnabled)
 
-        self.retranslate()
         self.openFile()
 
         self._textEdit.textChanged.connect(self._textChanged)
@@ -114,8 +98,7 @@ class TxtViewer(AbstractViewer):
         if not self._file.open(QFile.OpenModeFlag.ReadOnly
                                | QFile.OpenModeFlag.Text):
             err = self._file.errorString()
-            message = self.tr("Cannot read file {}:\n{}.").format(file_name, err)
-            self.statusMessage(message, type)
+            self.statusMessage(f"Cannot read file {file_name}:\n{err}.", type)
             return
 
         in_str = QTextStream(self._file)
@@ -127,7 +110,7 @@ class TxtViewer(AbstractViewer):
         self._textEdit.setPlainText(in_str.readAll())
         QGuiApplication.restoreOverrideCursor()
 
-        self.statusMessage(self.tr("File {} loaded.").format(file_name), type)
+        self.statusMessage(f"File {file_name} loaded.", type)
         self.maybeEnablePrinting()
 
     def hasContent(self):
@@ -148,14 +131,14 @@ class TxtViewer(AbstractViewer):
             out << self._textEdit.toPlainText()
         else:
             error = file.errorString()
-            errorMessage = self.tr("Cannot open file {} for writing:\n{}.").format(file_name, error)
+            errorMessage = f"Cannot open file {file_name} for writing:\n{error}."
         QGuiApplication.restoreOverrideCursor()
 
         if errorMessage:
             self.statusMessage(errorMessage)
             return False
 
-        self.statusMessage(self.tr("File {} saved").format(file_name))
+        self.statusMessage(f"File {file_name} saved")
         return True
 
     def saveDocumentAs(self):
