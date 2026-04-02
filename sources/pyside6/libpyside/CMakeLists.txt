@@ -222,5 +222,8 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/PySide6Config.cmake"
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/install/PySide6Config${SHIBOKEN_PYTHON_CONFIG_SUFFIX}.cmake"
         DESTINATION "${LIB_INSTALL_DIR}/cmake/PySide6")
 
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/wheel/PySide6Config${SHIBOKEN_PYTHON_CONFIG_SUFFIX}.cmake"
+        DESTINATION "${LIB_INSTALL_DIR}/wheels/cmake/PySide6")
+
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/PySide6ConfigVersion.cmake"
         DESTINATION "${LIB_INSTALL_DIR}/cmake/PySide6")
