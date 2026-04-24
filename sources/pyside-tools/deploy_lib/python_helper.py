@@ -108,22 +108,10 @@ class PythonExecutable:
         """
         Installs the python package dependencies for the target deployment platform
         """
-        packages_str = config.get_value("python", packages)
-        if not packages_str:
-            logging.warning(f"[DEPLOY] No packages found in config for '{packages}', skipping")
-            return
-        packages = packages_str.split(",")
+        packages = config.get_value("python", packages).split(",")
         if nuitka_version:
-            # Explicit version requested via cli. Install it.
             packages = [
                 f"Nuitka=={nuitka_version}" if p.strip().lower().startswith("nuitka") else p
-                for p in packages
-            ]
-        else:
-            # No explicit version: if Nuitka is already installed, use that. Otherwise, the one
-            # from pysidedeploy.spec
-            packages = [
-                p.split("==")[0] if p.strip().lower().startswith("nuitka") else p
                 for p in packages
             ]
         if not self.init:
