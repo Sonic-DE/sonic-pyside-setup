@@ -46,6 +46,30 @@ from Python.
         Lightweight QML types for creating performant user interfaces for
         desktop, embedded, and mobile devices.
 
+    .. grid-item-card:: :mod:`Qt Quick Test <PySide6.QtQuickTest>`
+
+        A unit test framework for QML applications, where the test cases
+        are written as JavaScript functions.
+
+    .. grid-item-card:: `Qt Quick Dialogs`_
+
+        Types for creating and interacting with system dialogs from a Qt
+        Quick application.
+
+    .. grid-item-card:: `Qt Quick Layouts`_
+
+        Layouts are items that are used to arrange Qt Quick 2 based items
+        in the user interface.
+
+    .. grid-item-card:: :mod:`Qt Labs StyleKit <PySide6.QtLabsStyleKit>`
+
+        A dedicated styling API that streamlines styling Qt Quick Controls
+        through a set of shared design attributes.
+
+    .. grid-item-card:: `Qt Quick Templates`_
+
+        Qt Quick Templates are the foundations of Qt Quick Controls.
+
     .. grid-item-card:: :mod:`Qt Quick Widgets <PySide6.QtQuickWidgets>`
 
         Provides a Python widget class for displaying a Qt Quick user interface.
@@ -74,4 +98,5 @@ of them.
 .. toctree::
 
    modules.rst
+
 

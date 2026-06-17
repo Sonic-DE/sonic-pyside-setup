@@ -107,6 +107,7 @@ macro(collect_optional_modules)
         CanvasPainter
         QuickTest
         QuickWidgets
+        LabsStyleKit
         RemoteObjects
         Scxml
         Sensors
