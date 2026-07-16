@@ -1,8 +1,6 @@
 # Copyright (C) 2023 The Qt Company Ltd.
 # SPDX-License-Identifier: BSD-3-Clause
 
-project(pyside6)
-
 # Configure include based on platform
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/__init__.py.in"
                "${CMAKE_CURRENT_BINARY_DIR}/__init__.py" @ONLY)
@@ -46,6 +44,10 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/support/generate_pyi.py"
                "${CMAKE_CURRENT_BINARY_DIR}/support/generate_pyi.py" COPYONLY)
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/support/deprecated.py"
                "${CMAKE_CURRENT_BINARY_DIR}/support/deprecated.py" COPYONLY)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/support/auto_property_helper.py"
+               "${CMAKE_CURRENT_BINARY_DIR}/support/auto_property_helper.py" COPYONLY)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/support/qml_component_helper.py"
+               "${CMAKE_CURRENT_BINARY_DIR}/support/qml_component_helper.py" COPYONLY)
 
 # Additional (non-Qt) modules implemented in PySide only
 foreach(mod IN LISTS PURE_PYTHON_MODULES)
@@ -119,7 +121,11 @@ install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/templates/widgets_common.xml
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/templates/datavisualization_common.xml
         DESTINATION share/PySide6${pyside_SUFFIX}/typesystems)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/pyside6_global.h
-        DESTINATION ${BINDING_NAME}${pyside6_SUFFIX}/include)
+        DESTINATION include/${BINDING_NAME}${pyside6_SUFFIX})
+
+if(NOT DISABLE_QtQmlFeatures)
+    add_subdirectory(QtQmlFeatures)
+endif()
 
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/QtAsyncio"
         DESTINATION "${PYTHON_SITE_PACKAGES}/${BINDING_NAME}${pyside6_SUFFIX}")
