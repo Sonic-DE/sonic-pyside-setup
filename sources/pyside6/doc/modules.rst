@@ -121,6 +121,11 @@ Qt Modules Supported by Qt for Python
 
         Classes for QML and JavaScript languages.
 
+    .. grid-item-card:: :mod:`Qt Qml Features <PySide6.QtQmlFeatures>`
+
+        A reactive property system for QObject subclasses, with observers,
+        computed values, reactive effects, and QML component loading.
+
     .. grid-item-card:: :mod:`Qt Quick <PySide6.QtQuick>`
 
         A declarative framework for building highly dynamic applications
@@ -268,3 +273,4 @@ Qt Modules Supported by Qt for Python
     .. grid-item-card:: :mod:`QtAsyncio <PySide6.QtAsyncio>`
 
         Provides integration between asyncio and Qt's event loop.
+

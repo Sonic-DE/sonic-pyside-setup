@@ -50,6 +50,21 @@ from Python.
 
         Provides a Python widget class for displaying a Qt Quick user interface.
 
+    .. grid-item-card:: :mod:`Qt QML Features <PySide6.QtQmlFeatures>`
+
+        Reactive property system for `QObject` subclasses: observe property
+        changes, derive computed values, run reactive effects, and load
+        QML components from Python.
+
+
+.. _`Qt QML Core`: https://doc.qt.io/qt-6/qtqmlcore-index.html
+.. _`Qt QML WorkerScript`: https://doc.qt.io/qt-6/qmlworkerscript-index.html
+.. _`Qt QML Models`: https://doc.qt.io/qt-6/qtqmlmodels-index.html
+.. _`Qt Quick Dialogs`: https://doc.qt.io/qt-6/qtquickdialogs-index.html
+.. _`Qt Quick Layouts`: https://doc.qt.io/qt-6/qtquicklayouts-index.html
+.. _`Qt Labs StyleKit`: https://doc.qt.io/qt-6/qtlabsstylekit-index.html
+.. _`Qt Quick Templates`: https://doc.qt.io/qt-6/qtquicktemplates2-index.html
+
 All the modules
 ---------------
 
@@ -59,3 +74,4 @@ of them.
 .. toctree::
 
    modules.rst
+
