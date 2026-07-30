@@ -20,6 +20,33 @@ DEFAULT_SDK_TAG = 6514223
 ANDROID_NDK_VERSION = "27c"
 ANDROID_NDK_VERSION_NUMBER_SUFFIX = "12479018"
 
+# CPython supports only these two Android ABIs. See HOSTS in CPython's
+# Android/android.py. 32-bit Android is not a supported CPython target.
+SUPPORTED_ANDROID_PLATFORMS = ["aarch64", "x86_64"]
+
+# Official SHA-1 checksums for the pinned NDK/SDK versions.
+_NDK_SHA1: dict[str, str] = {
+    "linux": "090e8083a715fdb1a3e402d0763c388abb03fb4e",
+    "darwin": "04d8c43eb4e884c4b16bbf7733ac9179a13b7b20",
+}
+_CLTOOLS_SHA1: dict[str, str] = {
+    "linux": "48833c34b761c10cb20bcd16582129395d121b27",
+    "mac": "cc27cca4b84bfdbc7df17e3d0a01d0c640d8ee71",
+}
+
+
+def _verify_sha1(file_path: Path, expected: str) -> None:
+    h = hashlib.sha1()
+    with open(file_path, "rb") as fh:
+        for chunk in iter(lambda: fh.read(65536), b""):
+            h.update(chunk)
+    actual = h.hexdigest()
+    if actual != expected:
+        raise RuntimeError(
+            f"[DEPLOY] Checksum mismatch for '{file_path.name}': "
+            f"expected {expected}, got {actual}"
+        )
+
 
 def run_command(command: list[str], cwd: str | None = None, ignore_fail: bool = False,
                 dry_run: bool = False, accept_prompts: bool = False, show_stdout: bool = False,
@@ -302,3 +329,4 @@ def install_android_packages(android_sdk_dir: Path, android_api: str, dry_run: b
         sdk_manager.install(f"platforms;android-{android_api}", show_stdout=show_output)
 
     print("Android packages installation done")
+
