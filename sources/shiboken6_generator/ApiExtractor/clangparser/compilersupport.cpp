@@ -296,6 +296,13 @@ static QString findClangLibDir()
 
 static QString findClangBuiltInIncludesDir()
 {
+    // Gentoo installs Clang resource headers directly under
+    // /usr/lib/clang/<slot>/include while libclang and its CMake package live
+    // under /usr/lib/llvm/<slot>. Prefer the matching slot resource directory
+    // before applying the upstream libdir/version-subdirectory heuristic.
+    const QString gentooResourceDir = QStringLiteral("/usr/lib/clang/%1/include").arg(LLVM_VERSION);
+    if (QFileInfo::exists(gentooResourceDir + QStringLiteral("/stddef.h")))
+        return gentooResourceDir;
     // Find the include directory of the highest version.
     const QString clangPathLibDir = findClangLibDir();
     if (!clangPathLibDir.isEmpty()) {
