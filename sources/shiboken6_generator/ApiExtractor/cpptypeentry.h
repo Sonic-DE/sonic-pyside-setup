@@ -30,6 +30,9 @@ public:
     bool isCopyable() const;
     bool isMovable() const;
     bool isMoveOnlyType() const { return !isCopyable() && isMovable(); }
+    TypeSystem::DestructorType destructorType() const;
+    bool isDestructible() const { return destructorType() == TypeSystem::DestructorType::PublicDestructor; }
+
 
     // Parser/code model interface
     TypeSystem::DefaultConstructibleFlag defaultConstructibleFlag() const;
@@ -42,6 +45,10 @@ public:
 
     TypeSystem::MovableFlag movableFlag() const;
     void setMovableFlag(TypeSystem::MovableFlag flag);
+
+    TypeSystem::DestructibleFlag destructibleFlag() const;
+    void setDestructibleFlag(TypeSystem::DestructibleFlag flag); // Type system parser
+    void setDetectedDestructorType(TypeSystem::DestructorType dt); // set value detected by code model
 
     TypeSystem::QtMetaTypeRegistration qtMetaTypeRegistration() const;
     void setQtMetaTypeRegistration(TypeSystem::QtMetaTypeRegistration r);
