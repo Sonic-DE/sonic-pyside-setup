@@ -1093,6 +1093,7 @@ bool AbstractMetaClass::canAddDefaultConstructor() const
         && !hasDeletedDefaultConstructor()
         && !attributes().testFlag(AbstractMetaClass::HasRejectedConstructor)
         && !hasPrivateDestructor()
+        && !hasDeletedDestructor()
         && !hasConstructors()
         && !hasPrivateConstructor() && d->isImplicitlyDefaultConstructible();
 }
@@ -1120,6 +1121,7 @@ bool AbstractMetaClass::canAddDefaultCopyConstructor() const
         && !hasDeletedMoveConstructor() && !hasMoveConstructor()
         && !hasDeletedMoveAssignmentOperator() && !hasMoveAssignmentOperator()
         && !hasPrivateDestructor()
+        && !hasDeletedDestructor()
         && !isAbstract()
         && d->isImplicitlyCopyConstructible();
 }
@@ -1164,10 +1166,8 @@ static AbstractMetaClass::CppWrapper determineCppWrapper(const AbstractMetaClass
     }
 
 #ifndef Q_CC_MSVC
-    // PYSIDE-504: When C++ 11 is used, then the destructor must always be
-    // declared. Only MSVC can handle this, the others generate a link error.
-    // See also HeaderGenerator::generateClass().
-    if (metaClass->hasPrivateDestructor())
+    // PYSIDE-504: See comment at HeaderGenerator::protectedHackDefine.
+    if (metaClass->hasPrivateDestructor() || metaClass->hasDeletedDestructor())
         return result;
 #endif
 
@@ -2084,3 +2084,4 @@ QDebug operator<<(QDebug d, const AbstractMetaClass *ac)
 }
 
 #endif // !QT_NO_DEBUG_STREAM
+

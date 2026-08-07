@@ -763,7 +763,8 @@ void CppGenerator::generateClass(TextStream &s,
 
         if (shouldGenerateMetaObjectFunctions(metaClass))
             writeMetaObjectMethod(s, classContext);
-        if (!avoidProtectedHack() || !metaClass->hasPrivateDestructor())
+        // PYSIDE-504: See comment at HeaderGenerator::protectedHackDefine.
+        if (typeEntry->destructorType() != TypeSystem::DestructorType::NoDestructor)
             writeDestructorNative(s, classContext);
     }
 
@@ -2324,6 +2325,13 @@ static bool forceQObjectNamedArguments(const QString &name)
     return classes.contains(name);
 }
 
+// Can call destructor from outside (publicly)
+static bool canCallDestructor(const GeneratorContext &classContext)
+{
+    return classContext.forSmartPointer() || classContext.useWrapper()
+            || classContext.metaClass()->typeEntry()->isDestructible();
+}
+
 void CppGenerator::writeConstructorWrapper(TextStream &s, const OverloadData &overloadData,
                                            const GeneratorContext &classContext) const
 {
@@ -2428,7 +2436,10 @@ void CppGenerator::writeConstructorWrapper(TextStream &s, const OverloadData &ov
     s << "if (" << shibokenErrorsOccurred
         << " || !Shiboken::Object::setCppPointer(sbkSelf, Shiboken::SbkType< "
         << globalScopePrefix(classContext) << typeName << " >(), cptr)) {\n"
-        <<  indent << "delete cptr;\n" << errorReturn << outdent
+        <<  indent;
+    if (canCallDestructor(classContext))
+        s << "delete cptr;\n";
+    s << errorReturn << outdent
         << "}\n";
     if (overloadData.maxArgs() > 0)
         s << "if (cptr == nullptr)\n" << indent
@@ -4726,11 +4737,11 @@ void CppGenerator::writeClassTypeFunction(TextStream &s,
         << outdent << "}\n" << closeExternC;
 }
 
-static QString getTpDealloc(const AbstractMetaClassCPtr &metaClass, bool isQApp)
+static QString getTpDealloc(const GeneratorContext &classContext, bool isQApp)
 {
-    if (metaClass->isNamespace())
+    if (classContext.metaClass()->isNamespace())
         return u"Sbk_object_dealloc /* PYSIDE-832: Prevent replacement of \"0\" with subtype_dealloc. */"_s;
-    if (metaClass->hasPrivateDestructor())
+    if (!canCallDestructor(classContext))
         return u"SbkDeallocWrapperWithPrivateDtor"_s;
     if (isQApp)
         return u"&SbkDeallocQAppWrapper"_s;
@@ -4772,7 +4783,7 @@ void CppGenerator::writeClassDefinition(TextStream &s,
     const bool isQApp = usePySideExtensions()
         && inheritsFrom(metaClass, u"QCoreApplication"_s);
 
-    const QString tp_dealloc = getTpDealloc(metaClass, isQApp);
+    const QString tp_dealloc = getTpDealloc(classContext, isQApp);
 
     QString tp_flags = u"Py_TPFLAGS_DEFAULT"_s;
     if (!metaClass->attributes().testFlag(AbstractMetaClass::FinalCppClass))
@@ -5881,19 +5892,21 @@ QString CppGenerator::callCppDestructor(const GeneratorContext &classContext,
 QString CppGenerator::destructorFunction(const AbstractMetaClassCPtr &metaClass,
                                          const GeneratorContext &classContext)
 {
-    if (metaClass->isNamespace() || metaClass->hasPrivateDestructor())
+    switch (metaClass->typeEntry()->destructorType()) {
+    case TypeSystem::DestructorType::ProtectedDestructor:
+        if (avoidProtectedHack() && classContext.useWrapper())
+            return callCppDestructor(classContext, classContext.wrapperName());
+        Q_FALLTHROUGH();
+    case TypeSystem::DestructorType::NoDestructor:
         return NULL_PTR;
+    case TypeSystem::DestructorType::PublicDestructor:
+        break;
+    }
     if (classContext.forSmartPointer())
         return callCppDestructor(classContext, classContext.effectiveClassName());
 
     if (metaClass->typeEntry()->isValue() && classContext.useWrapper())
         return callCppDestructor(classContext, classContext.wrapperName());
-
-    if (avoidProtectedHack() && metaClass->hasProtectedDestructor()) {
-        return classContext.useWrapper()
-            ? callCppDestructor(classContext, classContext.wrapperName())
-            : QString{NULL_PTR}; // Cannot call (happens with "disable-wrapper").
-    }
 
     if (usePySideExtensions()
             && metaClass->deletionMode() == TypeSystem::DeletionMode::DeleteInQObjectOwnerThread) {
@@ -7402,3 +7415,4 @@ void CppGenerator::writeReprFunctionFooter(TextStream &s)
 {
     s << outdent << "}\n} // extern C\n\n";
 }
+

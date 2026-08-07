@@ -72,31 +72,26 @@ TextStream &operator<<(TextStream &s, const IndexValue &iv)
     return s;
 }
 
-//  PYSIDE-504: Handling the "protected hack"
-//  The problem: Creating wrappers when the class has private destructors.
-//  You can see an example on Windows in qclipboard_wrapper.h and others.
-//  Simply search for the text "// C++11: need to declare (unimplemented) destructor".
-//  The protected hack is the definition "#define protected public".
-//  For most compilers, this "hack" is enabled, because the problem of private
-//  destructors simply vanishes.
-//
-//  If one does not want to use this hack, then a new problem arises:
-//  C++11 requires that a destructor is declared in a wrapper class when it is
-//  private in the base class. There is no implementation allowed!
-//
-//  Unfortunately, MSVC in recent versions supports C++11, and due to restrictive
-//  rules, it is impossible to use the hack with this compiler.
-//  More unfortunate: Clang, when C++11 is enabled, also enforces a declaration
-//  of a private destructor, but it falsely then creates a linker error!
-//
-//  Originally, we wanted to remove the protected hack. But due to the Clang
-//  problem, we gave up on removal of the protected hack and use it always
-//  when we can. This might change again when the Clang problem is solved.
+// PYSIDE-504: The "protected hack" is the definition "#define protected public".
+// It makes protected methods accessible for wrapper generation (for example,
+// protected base class virtuals need to be called from overriding functions
+// in Python).
+// It is not possible to do this for MSVC since the access mode
+// (private/protected/public) is part of the mangled function name and thus
+// the #define would cause linker issues. For this compiler, option
+// --avoid-protected-hack must be used, which causes the generation
+// of a derived wrapper class making the protected members accessible.
+// The derived wrapper class also enables overriding C++ virtuals
+// in Python.
 
-static bool alwaysGenerateDestructorDeclaration()
-{
-    return clang::optionsTriplet().compiler() == Compiler::Msvc;
-}
+// Classes with inaccessible (private/deleted) destructors (libsample: PrivateDtor,
+// Qt: QClipboard, QNetworkInformation, QInputMethod, QScroller, ...) pose a
+// special problem: These classes cannot normally be inherited from (derived
+// constructors cause a compile error), so, no wrapper can be generated. With
+// MSVC, it is possible though to create a wrapper for exposing static
+// protected methods for classes without constructors by only declaring the
+// wrapper destructor and not providing the implementation (causes linker error
+// with other compilers).
 
 const char *HeaderGenerator::protectedHackDefine = R"(// Workaround to access protected functions
 #ifndef protected
@@ -320,16 +315,14 @@ void HeaderGenerator::writeSpecialFunctions(TextStream &s, const QString &wrappe
 
     // destructor
     // PYSIDE-504: When C++ 11 is used, then the destructor must always be declared.
-    if (!avoidProtectedHack() || !metaClass->hasPrivateDestructor()
-        || alwaysGenerateDestructorDeclaration()) {
-        if (avoidProtectedHack() && metaClass->hasPrivateDestructor())
-            s << "// C++11: need to declare (unimplemented) destructor because "
-                 "the base class destructor is private.\n";
-        s << '~' << wrapperName << "()";
-        if (metaClass->hasVirtualDestructor())
-            s << " override";
-        s << ";\n\n";
+    if (metaClass->typeEntry()->destructorType() == TypeSystem::DestructorType::NoDestructor) {
+        s << "// C++11: need to declare (unimplemented) destructor because "
+             "the base class destructor is inaccessible.\n";
     }
+    s << '~' << wrapperName << "()";
+    if (metaClass->hasVirtualDestructor())
+        s << " override";
+    s << ";\n\n";
 }
 
 void HeaderGenerator::writeProtectedEnums(TextStream &s,
@@ -1024,3 +1017,4 @@ void HeaderGenerator::writeModuleCodeSnips(TextStream &s, const CodeSnipList &co
         }
     }
 }
+
