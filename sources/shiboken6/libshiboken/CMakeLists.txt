@@ -107,7 +107,21 @@ signature/signature_helper.cpp
 # Note: This must be set on the cpp file!
 set_property(SOURCE "pep384impl.cpp" PROPERTY SKIP_UNITY_BUILD_INCLUSION ON)
 
-add_library(libshiboken SHARED ${libshiboken_SRC})
+if(IOS)
+    set(library_type STATIC)
+else()
+    set(library_type SHARED)
+endif()
+add_library(libshiboken ${library_type} ${libshiboken_SRC})
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Android")
+    # Android requires 16 KB aligned LOAD segments for Play Store submission.
+    # Targets that link against Qt inherit this from Qt6::Platform's
+    # INTERFACE_LINK_OPTIONS; libshiboken has no Qt dependency, so the NDK
+    # linker falls back to its 4 KB default unless asked explicitly.
+    target_link_options(libshiboken PRIVATE "-Wl,-z,max-page-size=16384")
+endif()
+
 if(NOT TARGET Shiboken6::libshiboken)
     add_library(Shiboken6::libshiboken ALIAS libshiboken)
 endif()
@@ -227,3 +241,4 @@ if(NOT is_pyside6_superproject_build)
             DESTINATION "${LIB_INSTALL_DIR}/wheels/cmake/Shiboken6"
             FILE Shiboken6Targets.cmake)
 endif()
+
