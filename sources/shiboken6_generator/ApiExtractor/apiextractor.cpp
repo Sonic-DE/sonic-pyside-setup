@@ -77,6 +77,9 @@ QList<OptionDescription> ApiExtractor::options()
         {u"-isystem<path>"_s, {} },
         {u"system-include-paths="_s + OptionsParser::pathSyntax(),
          u"System include paths used by the C++ parser"_s},
+        {u"-idirafter<path>"_s, {} },
+        {u"dir-after-include-paths="_s + OptionsParser::pathSyntax(),
+         u"Include paths searched after the system paths by the C++ parser"_s},
         {u"language-level=, -std=<level>"_s,
          languageLevelDescription()},
     };
@@ -127,6 +130,7 @@ void ApiExtractorOptionsParser::setLanguageLevel(const QString &value)
 bool ApiExtractorOptionsParser::handleBoolOption(const QString &key, OptionSource source)
 {
     static const auto isystemOption = "isystem"_L1;
+    static const auto idirafterOption = "idirafter"_L1;
 
     switch (source) {
     case OptionSource::CommandLine:
@@ -152,6 +156,10 @@ bool ApiExtractorOptionsParser::handleBoolOption(const QString &key, OptionSourc
         }
         if (key.startsWith(isystemOption)) {
             parseIncludePathOption(key.sliced(isystemOption.size()), HeaderType::System);
+            return true;
+        }
+        if (key.startsWith(idirafterOption)) {
+            parseIncludePathOption(key.sliced(idirafterOption.size()), HeaderType::DirAfter);
             return true;
         }
         break;
@@ -193,6 +201,11 @@ bool ApiExtractorOptionsParser::handleOption(const QString &key, const QString &
                                HeaderType::System);
         return true;
     }
+    if (key == u"dir-after-include-paths") {
+        parseIncludePathOption(value.split(QDir::listSeparator(), Qt::SkipEmptyParts),
+                               HeaderType::DirAfter);
+        return true;
+    }
     if (key == u"language-level") {
         setLanguageLevel(value);
         return true;
@@ -209,6 +222,10 @@ bool ApiExtractorOptionsParser::handleOption(const QString &key, const QString &
         }
         if (key == u"system-include-path") {
             parseIncludePathOption(value, HeaderType::System);
+            return true;
+        }
+        if (key == u"dir-after-include-path") {
+            parseIncludePathOption(value, HeaderType::DirAfter);
             return true;
         }
     }
