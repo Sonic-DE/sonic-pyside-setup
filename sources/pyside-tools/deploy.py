@@ -1,6 +1,6 @@
 # Copyright (C) 2022 The Qt Company Ltd.
 # SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
-from __future__ import annotations
+# Qt-Security score:significant reason:build-tool
 
 """ pyside6-deploy deployment tool
 
@@ -215,3 +215,4 @@ if __name__ == "__main__":
     main(args.main_file, args.name, args.config_file, args.init, args.loglevel, args.dry_run,
          args.keep_deployment_files, args.force, args.extra_ignore_dirs, args.extra_modules,
          args.mode, args.nuitka_version)
+
