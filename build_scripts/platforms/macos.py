@@ -48,6 +48,8 @@ def prepare_standalone_package_macos(pyside_build, _vars, is_android=False):
     def general_dir_filter(dir_name, parent_full_path, dir_full_path):
         if fnmatch.fnmatch(dir_name, "*.dSYM"):
             return False
+        if is_ios and dir_name == 'objects-Debug':
+            return False
         return True
 
     # Filter out debug plugins and qml plugins in the
@@ -55,6 +57,8 @@ def prepare_standalone_package_macos(pyside_build, _vars, is_android=False):
     no_copy_debug = True
 
     def file_variant_filter(file_name, file_full_path):
+        if is_ios:
+            return not file_name.endswith(('_debug.a', '_debug.prl'))
         if pyside_build.qtinfo.build_type != 'debug_and_release':
             return True
         if file_name.endswith('_debug.dylib') and no_copy_debug:
@@ -62,7 +66,7 @@ def prepare_standalone_package_macos(pyside_build, _vars, is_android=False):
         return True
 
     # Patching designer to use the Qt libraries provided in the wheel
-    if config.is_internal_pyside_build() and not OPTION['NO_QT_TOOLS']:
+    if config.is_internal_pyside_build() and not OPTION['NO_QT_TOOLS'] and not is_ios:
         for tool in PYSIDE_UNIX_BUNDLED_TOOLS:
             _macos_patch_executable(tool, _vars)
 
@@ -76,7 +80,9 @@ def prepare_standalone_package_macos(pyside_build, _vars, is_android=False):
                 if constrain_modules and dir_name not in constrain_frameworks:
                     return False
 
-            if dir_name in ['Headers', 'fonts']:
+            if dir_name == 'fonts':
+                return False
+            if dir_name == 'Headers' and not is_ios:
                 return False
             if str(dir_full_path).endswith('Versions/Current'):
                 return False
@@ -91,6 +97,8 @@ def prepare_standalone_package_macos(pyside_build, _vars, is_android=False):
         no_copy_debug = True
 
         def framework_variant_filter(file_name, file_full_path):
+            if is_ios:
+                return not file_name.endswith(('_debug', '_debug.a', '_debug.prl', '-debug.cmake'))
             if pyside_build.qtinfo.build_type != 'debug_and_release':
                 return True
             dir_path = Path(file_full_path).parent
@@ -99,9 +107,11 @@ def prepare_standalone_package_macos(pyside_build, _vars, is_android=False):
                 return False
             return True
 
+        lib_ignore = ["*.la", "*.pc"] if is_ios else ["*.la", "*.a", "*.cmake", "*.pc", "*.prl"]
+
         copydir("{qt_lib_dir}", destination_qt_lib_dir,
                 recursive=True, _vars=_vars,
-                ignore=["*.la", "*.a", "*.cmake", "*.pc", "*.prl"],
+                ignore=lib_ignore,
                 dir_filter_function=framework_dir_filter,
                 file_filter_function=framework_variant_filter)
 
@@ -124,6 +134,8 @@ def prepare_standalone_package_macos(pyside_build, _vars, is_android=False):
         accepted_modules = ['libQt6*.6.dylib']
         if is_android:
             accepted_modules = ['libQt6*.so', '*-android-dependencies.xml']
+        elif is_ios:
+            accepted_modules = ['libQt6*.a']
 
         if constrain_modules:
             accepted_modules = [f"libQt6{module}*.6.dylib" for module in constrain_modules]
@@ -163,6 +175,8 @@ def prepare_standalone_package_macos(pyside_build, _vars, is_android=False):
         filters = ["*.dylib"]
         if is_android:
             filters = ["*.so"]
+        elif is_ios:
+            filters = ["*.a", "*.prl"]
         copydir("{qt_plugins_dir}", plugins_target,
                 _filter=filters,
                 recursive=True,
@@ -174,6 +188,7 @@ def prepare_standalone_package_macos(pyside_build, _vars, is_android=False):
                     plugins_target / "designer",
                     _filter=filters,
                     recursive=False,
+                    force=False,
                     _vars=_vars)
 
     if copy_qml:
