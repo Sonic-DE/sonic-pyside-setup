@@ -15,6 +15,7 @@ from enum import Enum
 from project_lib import ProjectData, DesignStudioProject, resolve_valid_project_file
 from . import (DEFAULT_APP_ICON, DEFAULT_IGNORE_DIRS, find_pyside_modules,
                find_permission_categories, QtDependencyReader, run_qmlimportscanner)
+from .pyproject_toml_deploy import read_deploy_section
 
 # Some QML plugins like QtCore are excluded from this list as they don't contribute much to
 # executable size. Excluding them saves the extra processing of checking for them in files
@@ -94,10 +95,19 @@ class Config(BaseConfig):
     creation
     """
 
-    def __init__(self, config_file: Path, source_file: Path, python_exe: Path, dry_run: bool,
+    def __init__(self, config_file: Path, source_file: Path, dry_run: bool,
                  existing_config_file: bool = False, extra_ignore_dirs: list[str] = None,
-                 name: str = None):
+                 name: str = None,
+                 pyproject_overrides: dict[tuple[str, str], str] | None = None):
         super().__init__(config_file=config_file, existing_config_file=existing_config_file)
+
+        # Apply [tool.pyside6.deploy] values on top of the spec file before any property
+        # reads.  CLI arguments still win because they are passed as property_value to
+        # set_or_fetch(), giving the precedence: CLI > pyproject.toml > pysidedeploy.spec.
+        if pyproject_overrides:
+            for (section, key), value in pyproject_overrides.items():
+                if self.parser.has_section(section):
+                    self.parser.set(section, key, value)
 
         self.extra_ignore_dirs = extra_ignore_dirs
         self._dry_run = dry_run
@@ -106,14 +116,6 @@ class Config(BaseConfig):
         self.source_file = Path(
             self.set_or_fetch(property_value=source_file, property_key="input_file")
         ).resolve()
-
-        self.python_path = Path(
-            self.set_or_fetch(
-                property_value=python_exe,
-                property_key="python_path",
-                property_group="python",
-            )
-        )
 
         self.title = self.set_or_fetch(property_value=name, property_key="title")
 
@@ -269,14 +271,6 @@ class Config(BaseConfig):
         self.set_value("app", "input_file", str(rel_path))
 
     @property
-    def python_path(self) -> Path:
-        return self._python_path
-
-    @python_path.setter
-    def python_path(self, python_path: Path):
-        self._python_path = python_path
-
-    @property
     def extra_args(self) -> str:
         return self.get_value("nuitka", "extra_args")
 
@@ -415,11 +409,13 @@ class DesktopConfig(Config):
         ONEFILE = "onefile"
         STANDALONE = "standalone"
 
-    def __init__(self, config_file: Path, source_file: Path, python_exe: Path, dry_run: bool,
+    def __init__(self, config_file: Path, source_file: Path, dry_run: bool,
                  existing_config_file: bool = False, extra_ignore_dirs: list[str] = None,
                  mode: str = "onefile", name: str = None):
-        super().__init__(config_file, source_file, python_exe, dry_run, existing_config_file,
-                         extra_ignore_dirs, name=name)
+        _project_dir = source_file.parent if source_file else config_file.parent
+        _pyproject_overrides = read_deploy_section(_project_dir)
+        super().__init__(config_file, source_file, dry_run, existing_config_file,
+                         extra_ignore_dirs, name=name, pyproject_overrides=_pyproject_overrides)
         self.dependency_reader = QtDependencyReader(dry_run=self.dry_run)
         modules = self.get_value("qt", "modules")
         if modules:
