@@ -2741,6 +2741,7 @@ bool TypeSystemParser::parseAddFunction(const ConditionalStreamReader &,
     }
 
     QString originalSignature;
+    QString docSignature;
     QString returnType;
     bool staticFunction = false;
     bool classMethod = false;
@@ -2750,6 +2751,8 @@ bool TypeSystemParser::parseAddFunction(const ConditionalStreamReader &,
         const auto name = attributes->at(i).qualifiedName();
         if (name == signatureAttribute) {
             originalSignature = attributes->takeAt(i).value().toString().simplified();
+        } else if (name == u"doc-signature") {
+            docSignature = attributes->takeAt(i).value().toString().simplified();
         } else if (name == u"return-type") {
             returnType = attributes->takeAt(i).value().toString();
         } else if (name == staticAttribute) {
@@ -2786,6 +2789,7 @@ bool TypeSystemParser::parseAddFunction(const ConditionalStreamReader &,
 
     func->setStatic(staticFunction);
     func->setClassMethod(classMethod);
+    func->setDocSignature(docSignature);
     func->setPythonOverride(pythonOverride);
     func->setTargetLangPackage(m_defaultPackage);
 

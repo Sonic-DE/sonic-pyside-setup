@@ -283,7 +283,9 @@ logic. This can be done using the :ref:`inject-code` node.
                        overload-number="number"
                        static="yes | no" classmethod="yes | no"
                        python-override ="yes | no"
-                       since="..."/>
+                       since="..."
+                       doc-signature="..."
+                       deprecated = "true | false" />
      </object-type>
 
 The ``return-type`` attribute defaults to *void*, the ``access`` to *public* and the ``static`` one to *no*.
@@ -324,6 +326,15 @@ See :ref:`sequence-protocol` for adding the respective functions.
 The *optional* attribute ``python-override`` indicates a special type
 of added function, a python-override that will be generated into
 the native wrapper (see :ref:`modifying-virtual-functions`).
+
+The *optional* attribute ``doc-signature`` attribute can
+be used to specify a signature (no return type, parameter type names
+only) to retrieve the documentation from an existing C++ function.
+This is useful when for example adding a function taking a Python
+callable replacing a C++ function taking a C++ callable.
+
+The *optional* **deprecated** attribute can be used to mark the
+function as deprecated.
 
 .. _declare-function:
 
@@ -557,3 +568,4 @@ snippet then converts the arguments and return values and returns after that:
            return;
            </inject-code>
        </modify-function>
+
