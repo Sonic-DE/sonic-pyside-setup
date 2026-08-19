@@ -1,7 +1,10 @@
 // Copyright (C) 2022 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
-// included by sbknumpy.cpp
+// included by sbknumpy.cpp to keep the numpy code in one TU
+
+# pragma once // Silence Axivion
+// AXIVION DISABLE Style Qt-Generic-NoFunctionDefinitionInHeader: Not included in any header
 
 namespace Shiboken::Numpy {
 
@@ -65,3 +68,4 @@ PyObject *createIntArray1(Py_ssize_t, const int *)
 #endif // !HAVE_NUMPY
 
 } //namespace Shiboken::Numpy
+
