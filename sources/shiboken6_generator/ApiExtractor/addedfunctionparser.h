@@ -1,8 +1,8 @@
 // Copyright (C) 2022 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only WITH Qt-GPL-exception-1.0
 
-#ifndef ADDEDFUNCTION_P_H
-#define ADDEDFUNCTION_P_H
+#ifndef ADDEDFUNCTIONPARSER_H
+#define ADDEDFUNCTIONPARSER_H
 
 #include <QtCore/qcompare.h>
 #include <QtCore/qlist.h>
@@ -42,4 +42,4 @@ Arguments splitParameters(QStringView paramString, QString *errorMessage = nullp
 
 } // namespace AddedFunctionParser
 
-#endif // MODIFICATIONS_P_H
+#endif // ADDEDFUNCTIONPARSER_H
