@@ -45,6 +45,25 @@ HELP_EXTRA_MODULES = dedent("""
                             Example usage 2: --extra-modules=QtNetwork,QtSvg
                             """)
 
+HELP_MODE = dedent("""
+                   The mode in which the application is deployed. The options are: onefile,
+                   standalone. The default value is onefile.
+
+                   This options translates to the mode Nuitka uses to create the executable.
+
+                   macOS by default uses the --standalone option.
+                   """)
+
+HELP_NO_INSTALL = dedent("""
+                         Do not install any Python package needed for deployment.
+
+                         The packages listed in the 'packages' option of
+                         pysidedeploy.spec have to be present already, otherwise
+                         the deployment stops with an error naming them. Use this
+                         for offline builds, or when the environment is managed
+                         elsewhere.
+                         """)
+
 # plugins to be removed from the --include-qt-plugins option because these plugins
 # don't exist in site-package under PySide6/Qt/plugins
 PLUGINS_TO_REMOVE = ["accessiblebridge", "platforms/darwin", "networkaccess",
@@ -61,9 +80,80 @@ def get_all_pyside_modules():
     return [module[2:] for module in PySide6.__all__]
 
 
-from .commands import run_command, run_qmlimportscanner
-from .dependency_util import find_pyside_modules, find_permission_categories, QtDependencyReader
-from .nuitka_helper import Nuitka
-from .config import BaseConfig, Config, DesktopConfig
-from .python_helper import PythonExecutable
-from .deploy_util import cleanup, finalize, create_config_file, config_option_exists
+def add_deploy_arguments(parser, include_main_file=True):
+    """Add pyside6-deploy arguments to an argparse parser.
+
+    When include_main_file is False, the positional main_file argument is omitted
+    (used when called from pyside6-project where the main file comes from the project file).
+    """
+
+    parser.add_argument("-c", "--config-file", type=lambda p: Path(p).absolute(),
+                        default=None,
+                        help="Path to the .spec config file")
+
+    if include_main_file:
+        parser.add_argument(
+            type=lambda p: Path(p).absolute(),
+            help="Path to main python file", nargs="?", dest="main_file",
+            default=None if config_option_exists() else Path.cwd() / "main.py")
+
+    parser.add_argument(
+        "--init", action="store_true",
+        help="Create pysidedeploy.spec file, if it doesn't already exists")
+
+    parser.add_argument(
+        "-v", "--verbose", help="Run in verbose mode", action="store_const",
+        dest="loglevel", const=logging.INFO)
+
+    parser.add_argument("--dry-run", action="store_true", help="Show the commands to be run")
+
+    parser.add_argument(
+        "--keep-deployment-files", action="store_true",
+        help="Keep the generated deployment files generated")
+
+    parser.add_argument("-f", "--force", action="store_true", help="Force all input prompts")
+
+    parser.add_argument("--name", type=str, help="Application name")
+
+    parser.add_argument("--extra-ignore-dirs", type=str, help=HELP_EXTRA_IGNORE_DIRS)
+
+    parser.add_argument("--extra-modules", type=str, help=HELP_EXTRA_MODULES)
+
+    parser.add_argument("--mode", choices=["onefile", "standalone"], default=None,
+                        help=HELP_MODE)
+
+    parser.add_argument("--no-install", action="store_true", help=HELP_NO_INSTALL)
+
+
+from .commands import (  # noqa: F401, E402
+    run_command,
+    run_qmlimportscanner,
+)
+
+from .dependency_util import (  # noqa: F401, E402
+    find_pyside_modules,
+    find_permission_categories,
+    QtDependencyReader,
+)
+
+from .nuitka_helper import (  # noqa: F401, E402
+    Nuitka,
+)
+
+from .config import (  # noqa: F401, E402
+    BaseConfig,
+    Config,
+    DesktopConfig,
+)
+
+from .python_helper import (  # noqa: F401, E402
+    PythonExecutable,
+)
+
+from .deploy_util import (  # noqa: F401, E402
+    cleanup,
+    finalize,
+    create_config_file,
+    config_option_exists,
+)
+
