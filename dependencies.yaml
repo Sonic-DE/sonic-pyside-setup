@@ -1,0 +1,55 @@
+dependencies:
+  ../../qt/qt3d:
+    ref: 9a1fe76db773972da8effae52ca9a2e8e6dd439b
+    required: true
+  ../../qt/qtcanvaspainter:
+    ref: 2c64e402c05f66649eb2a28e23b2091f59c8f51e
+    required: true
+  ../../qt/qtconnectivity:
+    ref: 15834de0bd25bc37595e40db56ad0898d13ab135
+    required: true
+  ../../qt/qtdatavis3d:
+    ref: e92e1794c36a7c29f2dfdd8af7ebbfe38e3be124
+    required: true
+  ../../qt/qtdoc:
+    ref: 92917657a82dd4b02cd540a8f4b1ad15cfba5a44
+    required: true
+  ../../qt/qtgrpc:
+    ref: d0220013f3749e3d791723d76f3c02398327e816
+    required: true
+  ../../qt/qtlottie:
+    ref: 4b7df6703c6ec31c82ca6a31662a9025d82f4e9e
+    required: true
+  ../../qt/qtnetworkauth:
+    ref: e0b9013aeb8651b37bba86d08e15f23b1e32dbf5
+    required: true
+  ../../qt/qtopenapi:
+    ref: 299d0875e4cdd641f7e0a7720bf6377921e380bc
+    required: true
+  ../../qt/qtqa:
+    ref: 6770dfdc79763087f4eca59635fac58faa23a744
+    required: true
+  ../../qt/qtquickeffectmaker:
+    ref: e5ea465de0d0486ed0abb7a9ae40ca215ab6fedc
+    required: true
+  ../../qt/qtremoteobjects:
+    ref: cca0a70c9374bed08afabc5ed0be1a8961736787
+    required: true
+  ../../qt/qtscxml:
+    ref: ef53a4f78b9c47f7edc1cd48ab01c9afbf0eea6d
+    required: true
+  ../../qt/qtserialbus:
+    ref: 89cf858fbf39bf4b24476b25f23682c307dc408b
+    required: true
+  ../../qt/qtspeech:
+    ref: b8d804a9a4d5bc1d87ba0b1ed7d6d8ddff20f308
+    required: true
+  ../../qt/qttranslations:
+    ref: 59b56fcbed89a0e647bec71a87f4120b0c585707
+    required: true
+  ../../qt/qtvirtualkeyboard:
+    ref: 6bd937ddbb884fcb9b1efc0954626d8fb6a8a08c
+    required: true
+  ../../qt/qtwebview:
+    ref: b4c33cb4b8fa51ef4e085b0ea16fd1f299da5cad
+    required: true
