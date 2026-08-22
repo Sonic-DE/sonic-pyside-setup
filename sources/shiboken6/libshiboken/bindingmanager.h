@@ -36,7 +36,11 @@ public:
     bool hasWrapper(const void *cptr) const;
 
     void registerWrapper(SbkObject *pyObj, void *cptr);
-    void releaseWrapper(SbkObject *wrapper);
+    /// Take the object out of the wrapper map, leaving its flags alone.
+    /// Deallocation uses this to make the wrapper unreachable before it runs
+    /// any Python code; releaseWrapper() below is the same plus invalidation.
+    void unregisterWrapper(SbkObject *sbkObj);
+    void releaseWrapper(SbkObject *sbkObj);
 
     void runDeletionInMainThread();
     void addToDeletionInMainThread(const DestructorEntry &);
@@ -91,3 +95,4 @@ LIBSHIBOKEN_API bool callInheritedInit(PyObject *self, PyObject *args, PyObject 
 } // namespace Shiboken
 
 #endif // BINDINGMANAGER_H
+
