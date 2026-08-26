@@ -298,6 +298,7 @@ type_map.update({
     "std.pair": typing.Tuple,
     "std.string": str,
     "std.wstring": str,
+    "std.optional<qreal>": typing.Union[float, None],
     "std.vector": typing.List,
     "str": str,
     "true": True,
