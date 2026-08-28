@@ -458,6 +458,9 @@ public:
     void setAttributes(FunctionAttributes a) { m_attributes = a; }
     void setAttribute(FunctionAttribute a, bool on = true) { m_attributes.setFlag(a, on); }
 
+    ReferenceType refQualified() const { return m_refQualified; }
+    void setRefQualified(ReferenceType rt) { m_refQualified = rt; };
+
     bool isDeleted() const;
     void setDeleted(bool d);
 
@@ -519,6 +522,14 @@ private:
         uint m_flags;
     };
     ExceptionSpecification m_exceptionSpecification = ExceptionSpecification::Unknown;
+    ReferenceType m_refQualified = ReferenceType::NoReference;
+
+    uint m_isDeleted: 1;
+    uint m_isInline: 1;
+    uint m_isVariadics: 1;
+    uint m_isHiddenFriend: 1;
+    uint m_isInvokable : 1; // Qt
+    uint m_scopeResolution: 1;
 };
 
 class _VariableModelItem: public _MemberModelItem
@@ -677,3 +688,4 @@ private:
 };
 
 #endif // CODEMODEL_H
+
