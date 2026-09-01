@@ -9,10 +9,10 @@ import os
 import subprocess
 from pathlib import Path
 
-from ios_utilities import (download_python_support,
-                           generate_toolchain,
+from ios_utilities import (generate_toolchain,
                            python_xcframework_slice_dir,
                            PYSIDE_SETUP_ROOT)
+from python_xcframework import download_python_support
 
 COIN_RUN_HELP = ('''
 When run by Qt's continuos integration system COIN. This option is irrelevant to user building
@@ -31,7 +31,7 @@ def cmd_build(args: argparse.Namespace) -> None:
         qt_ios = qt_install_path / "target"
         qt_macos = qt_install_path
     else:
-        qt_ios = qt_install_path / "ios"
+        qt_ios = qt_install_path / (f"ios_simulator_{arch}" if simulator else "ios_device")
         qt_macos = qt_install_path / "macos"
 
     # Download the official python.org Python.xcframework

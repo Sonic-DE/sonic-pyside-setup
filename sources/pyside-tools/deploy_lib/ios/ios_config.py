@@ -12,6 +12,7 @@ from .. import Config
 from ..dependency_util import get_py_files
 from .ios_helper import (IOSData, get_wheel_ios_target, get_xcframework_python_version,
                          safe_extractall)
+from .python_xcframework import download_python_support
 
 
 def _unpack_wheel(wheel_path: Path, dest_parent: Path, package_name: str) -> Path:
@@ -102,11 +103,11 @@ def _default_bundle_id(name: str) -> str:
 
 class IOSConfig(Config):
     """Wrapper class around pysidedeploy.spec file for pyside6-ios-deploy"""
-    def __init__(self, config_file: Path, source_file: Path, python_exe: Path, dry_run: bool,
-                 ios_data: IOSData, existing_config_file: bool = False, name: str = None,
+    def __init__(self, config_file: Path, source_file: Path, dry_run: bool, ios_data: IOSData,
+                 existing_config_file: bool = False, name: str = None,
                  bundle_id: str = None, team_id: str = None, app_version: str = None):
-        super().__init__(config_file=config_file, source_file=source_file, python_exe=python_exe,
-                         dry_run=dry_run, existing_config_file=existing_config_file, name=name)
+        super().__init__(config_file=config_file, source_file=source_file, dry_run=dry_run,
+                         existing_config_file=existing_config_file, name=name)
 
         if ios_data.wheel_pyside:
             self.wheel_pyside = ios_data.wheel_pyside
@@ -127,14 +128,13 @@ class IOSConfig(Config):
         if ios_data.xcframework_path:
             self.xcframework_path = ios_data.xcframework_path
         else:
-            # TODO: download python.xcframework -> target version from wheel
+            # from config
             xcframework_temp = self.get_value("ios", "xcframework_path")
-            if not xcframework_temp:
-                raise RuntimeError(
-                    "[DEPLOY] Unable to find Python.xcframework. Pass --xcframework-path "
-                    "to Python-Apple-support's Python.xcframework"
-                )
-            self.xcframework_path = Path(xcframework_temp).resolve()
+            if xcframework_temp:
+                self.xcframework_path = Path(xcframework_temp).resolve()
+            else:
+                # download Python.xcframework
+                self.xcframework_path = download_python_support()
 
         # arch/simulator are never given via cli -- the wheel's platform tag already
         # fixes them (eg: '...-ios_arm64_simulator.whl'), same as Android's
