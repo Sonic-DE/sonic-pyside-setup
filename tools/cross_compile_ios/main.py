@@ -20,8 +20,8 @@ their own wheels.
 ''')
 
 
-def cmd_build(args: argparse.Namespace) -> None:
-    """ Build subcommand """
+def cross_compile(args: argparse.Namespace) -> None:
+    """Cross compile PySide6 for iOS"""
     simulator = args.simulator or (args.arch == "x86_64")
     arch = args.arch
     coin = args.coin
@@ -78,38 +78,27 @@ def main():
         description="PySide6 iOS cross-compilation tools",
         formatter_class=argparse.RawTextHelpFormatter,
     )
-    subparsers = parser.add_subparsers(dest="command")
 
-    # --- build ---
-    build_p = subparsers.add_parser(
-        "build",
-        help="Cross-compile PySide6 for iOS",
-        formatter_class=argparse.RawTextHelpFormatter,
-    )
-    build_p.add_argument(
+    parser.add_argument(
         "--qt-install-path", required=True, type=Path,
         help="Qt installation root, e.g. ~/Qt/6.12.0",
     )
-    build_p.add_argument(
+    parser.add_argument(
         "--arch", choices=["arm64", "x86_64"], default="arm64",
         help="Target CPU architecture (default: arm64; x86_64 implies --simulator)",
     )
-    build_p.add_argument(
+    parser.add_argument(
         "--simulator", action="store_true",
         help="Build for iOS Simulator (device is the default)",
     )
-    build_p.add_argument(
+    parser.add_argument(
         "--coin", action="store_true",
         help=COIN_RUN_HELP,
     )
 
     args = parser.parse_args()
 
-    if args.command == "build":
-        cmd_build(args)
-    else:
-        parser.print_help()
-        sys.exit(1)
+    cross_compile(args)
 
 
 if __name__ == "__main__":
