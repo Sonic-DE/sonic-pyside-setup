@@ -26,6 +26,7 @@ def cross_compile(args: argparse.Namespace) -> None:
     arch = args.arch
     coin = args.coin
     qt_install_path = args.qt_install_path.expanduser().resolve()
+    dry_run = args.dry_run
     # iOS wheels go into their own directory. dist/ is owned by the
     # desktop build, which deletes it wholesale before repopulating it, and
     # that would take the cross-compiled wheels with it.
@@ -40,7 +41,7 @@ def cross_compile(args: argparse.Namespace) -> None:
         qt_macos = qt_install_path / "macos"
 
     # Download the official python.org Python.xcframework
-    python_xcframework = download_python_support()
+    python_xcframework = download_python_support(dry_run=dry_run)
 
     # Generate toolchain file
     toolchain = generate_toolchain(
@@ -48,6 +49,7 @@ def cross_compile(args: argparse.Namespace) -> None:
         simulator=simulator,
         python_xcframework=python_xcframework,
         qt_ios=qt_ios,
+        dry_run=dry_run,
     )
 
     # Cross-compile PySide6
@@ -65,6 +67,10 @@ def cross_compile(args: argparse.Namespace) -> None:
         f"--dist-dir={str(ios_dist_dir)}",
         "--no-qt-tools",
     ]
+
+    if dry_run:
+        print(" ".join(cmd))
+        return
 
     env = os.environ.copy()
     logging.info(f"Running bdist_wheel for platform {plat_name}")
@@ -95,6 +101,8 @@ def main():
         "--coin", action="store_true",
         help=COIN_RUN_HELP,
     )
+
+    parser.add_argument("--dry-run", action="store_true", help="show the commands to be run")
 
     args = parser.parse_args()
 

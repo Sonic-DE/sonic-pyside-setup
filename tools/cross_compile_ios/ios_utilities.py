@@ -26,9 +26,14 @@ TARGET_QT_INFO_DIR = PYSIDE_SETUP_ROOT / "sources" / "shiboken6" / "config.tests
 def _query_qt_install_cmakedir(
         qt_ios: Path,
         cmake: str = "cmake",
+        dry_run: bool = False,
 ) -> str | None:
     """Query Qt's QT_INSTALL_CMAKEDIR via the target_qt_info config.tests,
     instead of assuming the default 'lib/cmake'."""
+    if dry_run:
+        print(f"{cmake} -G Ninja -S {TARGET_QT_INFO_DIR} -B <build_dir> "
+              f"-DQFP_QT_TARGET_PATH={qt_ios} -DCMAKE_SYSTEM_NAME=iOS")
+        return None
     cmake_cache_args = [
         ("QFP_QT_TARGET_PATH", qt_ios),
         ("CMAKE_SYSTEM_NAME", "iOS"),
@@ -50,10 +55,11 @@ def generate_toolchain(
         simulator: bool,
         python_xcframework: Path,
         qt_ios: Path,
+        dry_run: bool = False,
 ) -> Path:
 
     try:
-        qt_install_prefix_cmakedir = _query_qt_install_cmakedir(qt_ios)
+        qt_install_prefix_cmakedir = _query_qt_install_cmakedir(qt_ios, dry_run=dry_run)
     except (RuntimeError, OSError) as e:
         logging.warning(
             f"Failed to find Qt's cmake dir; "
@@ -77,7 +83,10 @@ def generate_toolchain(
 
     suffix = f"{arch}_simulator" if simulator else arch
     toolchain_path = IOS_CACHE_DIR / f"toolchain_ios_{suffix}.cmake"
-    IOS_CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    toolchain_path.write_text(content)
-    logging.info(f"Toolchain written: {toolchain_path}")
+    if dry_run:
+        print(f"write toolchain -> {toolchain_path}")
+    else:
+        IOS_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        toolchain_path.write_text(content)
+        logging.info(f"Toolchain written: {toolchain_path}")
     return toolchain_path

@@ -60,6 +60,7 @@ def _verify_sha256(file_path: Path, expected: str) -> None:
 def download_python_support(
     release: str = PYTHON_RELEASE,
     cache_dir: Path = IOS_CACHE_DIR / "Python-iOS",
+    dry_run: bool = False,
 ) -> Path:
 
     base_version = re.match(r"^\d+\.\d+\.\d+", release).group()
@@ -70,11 +71,13 @@ def download_python_support(
     url = PYTHON_ORG_IOS_URL.format(base_version=base_version, release=release)
     expected_sha256 = _PYTHON_IOS_SHA256.get(release)
 
-    archive_path.parent.mkdir(parents=True, exist_ok=True)
     if archive_path.exists():
         logging.info(f"Using cached archive: {archive_path}")
         _verify_sha256(archive_path, expected_sha256)
+    elif dry_run:
+        print(f"download {url} -> {archive_path}")
     else:
+        archive_path.parent.mkdir(parents=True, exist_ok=True)
         logging.info(f"Downloading {url} -> {archive_path}")
         try:
             with DownloadProgressBar(unit="B",
@@ -92,6 +95,8 @@ def download_python_support(
 
     if extract_dir.exists():
         logging.info(f"Using cached extraction: {extract_dir}")
+    elif dry_run:
+        print(f"extract {archive_path} -> {extract_dir}")
     else:
         logging.info(f"Extracting {archive_path} -> {extract_dir}")
         extract_dir.mkdir(parents=True, exist_ok=True)
