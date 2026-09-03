@@ -26,10 +26,15 @@ def cmd_build(args: argparse.Namespace) -> None:
     arch = args.arch
     coin = args.coin
     qt_install_path = args.qt_install_path.expanduser().resolve()
+    # iOS wheels go into their own directory. dist/ is owned by the
+    # desktop build, which deletes it wholesale before repopulating it, and
+    # that would take the cross-compiled wheels with it.
+    ios_dist_dir = PYSIDE_SETUP_ROOT / "dist_ios"
 
     if coin:
         qt_ios = qt_install_path / "target"
         qt_macos = qt_install_path
+        ios_dist_dir = PYSIDE_SETUP_ROOT / "dist"
     else:
         qt_ios = qt_install_path / (f"ios_simulator_{arch}" if simulator else "ios_device")
         qt_macos = qt_install_path / "macos"
@@ -57,6 +62,7 @@ def cmd_build(args: argparse.Namespace) -> None:
         f"--qt-target-path={qt_ios}",
         f"--python-target-path={python_slice}",
         f"--plat-name={plat_name}",
+        f"--dist-dir={str(ios_dist_dir)}",
         "--no-qt-tools",
     ]
 
