@@ -30,8 +30,14 @@ def _unpack_wheel(wheel_path: Path, dest_parent: Path, package_name: str) -> Pat
     return dest
 
 
-def _version_tuple(v: str) -> tuple[int, ...]:
-    return tuple(int(p) for p in v.split("."))
+def _version_tuple(v: str, what: str) -> tuple[int, ...]:
+    try:
+        return tuple(int(p) for p in v.split("."))
+    except ValueError:
+        raise RuntimeError(
+            f"[DEPLOY] {what} is not a valid iOS version: \"{v}\" -- expected digits "
+            "separated by dots, eg: \"18.0\""
+        ) from None
 
 
 def _qt_deployment_target(qt_ios: Path) -> str | None:
@@ -183,10 +189,16 @@ class IOSConfig(Config):
         header_search_paths = self.get_value("ios", "header_search_paths")
         self.header_search_paths = header_search_paths.split(",") if header_search_paths else []
 
+        # Left empty in the spec, [ios] deployment_target follows whatever the Qt kit
+        # in the wheel was built for. It is deliberately never written back, so that
+        # empty keeps meaning "follow Qt" across Qt upgrades, and any value in there
+        # is known to be the user's own.
         deployment_target = self.get_value("ios", "deployment_target")
         qt_min_deployment_target = _qt_deployment_target(self.qt_ios)
+        target_source = "pysidedeploy.spec"
         if not deployment_target:
             deployment_target = qt_min_deployment_target
+            target_source = "the Qt kit in the PySide6 wheel"
         if deployment_target is None:
             raise RuntimeError(
                 "[DEPLOY] Could not determine Qt's minimum iOS deployment target from "
@@ -199,13 +211,17 @@ class IOSConfig(Config):
                 f"qt.toolchain.cmake, so [ios] deployment_target = \"{deployment_target}\" "
                 "could not be validated against it."
             )
-        elif _version_tuple(deployment_target) < _version_tuple(qt_min_deployment_target):
+        elif (_version_tuple(deployment_target, f"the iOS deployment target from {target_source}")
+                < _version_tuple(qt_min_deployment_target,
+                                 "Qt's minimum iOS deployment target")):
             raise RuntimeError(
                 f"[DEPLOY] [ios] deployment_target = \"{deployment_target}\" is lower than "
                 f"{qt_min_deployment_target}, the minimum iOS version this Qt kit's binaries "
                 "were themselves built for -- the app would claim to support OS versions its "
                 "own linked Qt libraries can't run on."
             )
+        logging.info(f"[DEPLOY] iOS deployment target: {deployment_target} "
+                     f"(from {target_source})")
         self.deployment_target = deployment_target
 
     @property
