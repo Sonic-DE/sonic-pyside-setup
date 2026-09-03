@@ -76,7 +76,10 @@ def main(name: str = None, wheel_pyside: Path = None, wheel_shiboken: Path = Non
         out_dir = config.output_dir
         product_name = config.name.replace(" ", "")
         proj_dir = out_dir / f"{product_name}.xcodeproj"
-        proj_dir.mkdir(parents=True, exist_ok=True)
+        if dry_run:
+            print(f"mkdir {proj_dir}")
+        else:
+            proj_dir.mkdir(parents=True, exist_ok=True)
 
         qml_plugins = ios_dependency.resolve_qml_plugins(config, config.qml_qt_modules)
         plugins = ios_dependency.enabled_plugins(config)
@@ -88,22 +91,34 @@ def main(name: str = None, wheel_pyside: Path = None, wheel_shiboken: Path = Non
         )
 
         main_mm_path = out_dir / "main.mm"
-        main_mm_path.write_text(main_mm.generate(config, qml_plugins, qt_deps))
-        logging.info(f"[DEPLOY] Wrote {main_mm_path}")
+        if dry_run:
+            print(f"write {main_mm_path}")
+        else:
+            main_mm_path.write_text(main_mm.generate(config, qml_plugins, qt_deps))
+            logging.info(f"[DEPLOY] Wrote {main_mm_path}")
 
         info_plist_path = out_dir / "Info.plist"
-        info_plist_path.write_bytes(info_plist.generate(config))
-        logging.info(f"[DEPLOY] Wrote {info_plist_path}")
+        if dry_run:
+            print(f"write {info_plist_path}")
+        else:
+            info_plist_path.write_bytes(info_plist.generate(config))
+            logging.info(f"[DEPLOY] Wrote {info_plist_path}")
 
         if config.entitlements:
             entitlements_src = config.project_root / config.entitlements
             entitlements_dest = out_dir / Path(config.entitlements).name
-            shutil.copyfile(entitlements_src, entitlements_dest)
-            logging.info(f"[DEPLOY] Copied {entitlements_src} -> {entitlements_dest}")
+            if dry_run:
+                print(f"copy {entitlements_src} -> {entitlements_dest}")
+            else:
+                shutil.copyfile(entitlements_src, entitlements_dest)
+                logging.info(f"[DEPLOY] Copied {entitlements_src} -> {entitlements_dest}")
 
         pbxproj_path = proj_dir / "project.pbxproj"
-        pbxproj_path.write_text(pbxproj.generate(config, qml_plugins, qt_deps))
-        logging.info(f"[DEPLOY] Wrote {pbxproj_path}")
+        if dry_run:
+            print(f"write {pbxproj_path}")
+        else:
+            pbxproj_path.write_text(pbxproj.generate(config, qml_plugins, qt_deps))
+            logging.info(f"[DEPLOY] Wrote {pbxproj_path}")
 
         logging.info(f"[DEPLOY] Done. Open with:\n  open {proj_dir}")
     except Exception:

@@ -134,7 +134,7 @@ class IOSConfig(Config):
                 self.xcframework_path = Path(xcframework_temp).resolve()
             else:
                 # download Python.xcframework
-                self.xcframework_path = download_python_support()
+                self.xcframework_path = download_python_support(dry_run=dry_run)
 
         # arch/simulator are never given via cli -- the wheel's platform tag already
         # fixes them (eg: '...-ios_arm64_simulator.whl'), same as Android's
