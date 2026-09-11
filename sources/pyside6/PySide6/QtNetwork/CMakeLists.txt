@@ -49,13 +49,18 @@ ${QtNetwork_GEN_DIR}/qssl_wrapper.cpp
 ${QtNetwork_GEN_DIR}/qsslcertificate_wrapper.cpp
 ${QtNetwork_GEN_DIR}/qsslcertificateextension_wrapper.cpp
 ${QtNetwork_GEN_DIR}/qsslellipticcurve_wrapper.cpp
-${QtNetwork_GEN_DIR}/qsslkeyingmaterial_wrapper.cpp
 ${QtNetwork_GEN_DIR}/qtcpserver_wrapper.cpp
 ${QtNetwork_GEN_DIR}/qtcpsocket_wrapper.cpp
 ${QtNetwork_GEN_DIR}/qudpsocket_wrapper.cpp
 # module is always needed
 ${QtNetwork_GEN_DIR}/qtnetwork_module_wrapper.cpp
 )
+
+# Keep the source list aligned with the typesystem's since="6.12" guard.
+# Remove this compatibility condition when Qt 6.12 becomes the minimum.
+if(Qt6Core_VERSION VERSION_GREATER_EQUAL "6.12")
+    list(APPEND QtNetwork_SRC ${QtNetwork_GEN_DIR}/qsslkeyingmaterial_wrapper.cpp)
+endif()
 
 get_property(QtNetwork_disabled_features TARGET Qt${QT_MAJOR_VERSION}::Network
              PROPERTY QT_DISABLED_PUBLIC_FEATURES)

@@ -120,7 +120,6 @@ macro(collect_optional_modules)
         CanvasPainter
         QuickTest
         QuickWidgets
-        LabsStyleKit
         RemoteObjects
         Scxml
         Sensors
@@ -136,6 +135,11 @@ macro(collect_optional_modules)
         Graphs
         GraphsWidgets
         Bluetooth)
+    # QStyleKitStyle became public in Qt 6.12. Qt 6.11 only exposes the
+    # incompatible private QQStyleKitStyle implementation.
+    if(Qt${QT_MAJOR_VERSION}Core_VERSION VERSION_GREATER_EQUAL "6.12")
+        list(APPEND ALL_OPTIONAL_MODULES LabsStyleKit)
+    endif()
     find_package(Qt${QT_MAJOR_VERSION}UiTools QUIET)
     if(Qt${QT_MAJOR_VERSION}UiTools_FOUND)
         list(APPEND ALL_OPTIONAL_MODULES UiTools)

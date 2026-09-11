@@ -48,7 +48,6 @@ ${QtGraphs_GEN_DIR}/qbarseries_wrapper.cpp
 ${QtGraphs_GEN_DIR}/qbarset_wrapper.cpp
 ${QtGraphs_GEN_DIR}/qdatetimeaxis_wrapper.cpp
 ${QtGraphs_GEN_DIR}/qlineseries_wrapper.cpp
-${QtGraphs_GEN_DIR}/qlogvalueaxis_wrapper.cpp
 ${QtGraphs_GEN_DIR}/qpiemodelmapper_wrapper.cpp
 ${QtGraphs_GEN_DIR}/qpieseries_wrapper.cpp
 ${QtGraphs_GEN_DIR}/qpieslice_wrapper.cpp
@@ -60,6 +59,12 @@ ${QtGraphs_GEN_DIR}/qxyseries_wrapper.cpp
 # module is always needed
 ${QtGraphs_GEN_DIR}/qtgraphs_module_wrapper.cpp
 )
+
+# QLogValueAxis was added to QtGraphs in Qt 6.12. Remove this temporary
+# source-list guard when Qt 6.12 becomes the minimum.
+if(Qt6Core_VERSION VERSION_GREATER_EQUAL "6.12")
+    list(APPEND QtGraphs_SRC ${QtGraphs_GEN_DIR}/qlogvalueaxis_wrapper.cpp)
+endif()
 
 set(QtGraphs_include_dirs
     ${QtCore_GEN_DIR}

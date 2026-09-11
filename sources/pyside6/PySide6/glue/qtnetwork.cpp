@@ -41,6 +41,78 @@ void QHostInfoFunctor::operator()(const QHostInfo &hostInfo)
 // @snippet qhostinfo-lookuphost-callable
 
 // @snippet qhttpheaderrange-from-sequence
+#if QT_VERSION >= QT_VERSION_CHECK(6, 12, 0)
+using HttpHeaderRange = QHttpHeaderRange;
+#else
+// Temporary compatibility for Qt < 6.12. Mirror qtbase/5b1c236825's
+// QHttpHeaders range helpers using the existing raw-header API.
+struct HttpHeaderRange
+{
+    std::optional<qint64> start;
+    std::optional<qint64> end;
+
+    bool isValid() const
+    {
+        return (start || end) && (!start || *start >= 0) && (!end || *end >= 0)
+            && (!start || !end || *start <= *end);
+    }
+};
+
+static std::optional<QList<HttpHeaderRange>> httpHeaderRanges(const QHttpHeaders &headers)
+{
+    QList<HttpHeaderRange> result;
+    const auto values = headers.values(QHttpHeaders::WellKnownHeader::Range);
+    for (const QByteArray &value : values) {
+        if (!value.startsWith("bytes="))
+            continue;
+        const auto parts = value.mid(6).split(',');
+        for (const QByteArray &partBytes : parts) {
+            const QLatin1StringView part(partBytes);
+            const auto dash = part.indexOf(u'-');
+            if (dash == -1)
+                return std::nullopt;
+            const auto start = part.first(dash).trimmed();
+            const auto end = part.sliced(dash + 1).trimmed();
+            HttpHeaderRange range;
+            bool ok = false;
+            if (!start.isEmpty()) {
+                range.start = start.toLongLong(&ok);
+                if (!ok)
+                    return std::nullopt;
+            }
+            if (!end.isEmpty()) {
+                range.end = end.toLongLong(&ok);
+                if (!ok)
+                    return std::nullopt;
+            }
+            if (!range.isValid())
+                return std::nullopt;
+            result.append(range);
+        }
+    }
+    return result;
+}
+
+static void setHttpHeaderRanges(QHttpHeaders &headers, const QList<HttpHeaderRange> &ranges)
+{
+    if (ranges.isEmpty()) {
+        headers.removeAll(QHttpHeaders::WellKnownHeader::Range);
+        return;
+    }
+    QByteArray value("bytes=");
+    for (qsizetype i = 0; i < ranges.size(); ++i) {
+        if (i)
+            value += ", ";
+        if (ranges[i].start)
+            value += QByteArray::number(*ranges[i].start);
+        value += '-';
+        if (ranges[i].end)
+            value += QByteArray::number(*ranges[i].end);
+    }
+    headers.replaceOrAppend(QHttpHeaders::WellKnownHeader::Range, value);
+}
+#endif
+
 using RangeType = qint64;
 
 static std::optional<RangeType> rangeValueFromPython(PyObject *t)
@@ -50,13 +122,15 @@ static std::optional<RangeType> rangeValueFromPython(PyObject *t)
     return std::nullopt;
 }
 
-static QHttpHeaderRange qHttpHeaderRangeFromSequence(PyObject *t)
+static HttpHeaderRange qHttpHeaderRangeFromSequence(PyObject *t)
 {
     if (PySequence_Check(t) == 0 || PySequence_Size(t) != 2)
         return {};
 
     Shiboken::AutoDecRef start(PySequence_GetItem(t, 0));
     Shiboken::AutoDecRef end(PySequence_GetItem(t, 1));
+    if (start.isNull() || end.isNull())
+        return {};
     return {rangeValueFromPython(start), rangeValueFromPython(end)};
 }
 
@@ -69,15 +143,30 @@ static PyObject *rangeValueToPython(const std::optional<RangeType> &v)
 // @snippet qhttpheaderrange-from-sequence
 
 // @snippet qhttpheaders-rangevalues
-const std::optional<QList<QHttpHeaderRange>> rangesOpt = %CPPSELF.%FUNCTION_NAME();
+#if QT_VERSION >= QT_VERSION_CHECK(6, 12, 0)
+const auto rangesOpt = %CPPSELF.%FUNCTION_NAME();
+#else
+const auto rangesOpt = httpHeaderRanges(*%CPPSELF);
+#endif
 if (rangesOpt.has_value()) {
-    const QList<QHttpHeaderRange> &ranges = rangesOpt.value();
+    const auto &ranges = rangesOpt.value();
     const auto size = ranges.size();
     %PYARG_0 = PyList_New(size);
+    if (%PYARG_0 == nullptr)
+        return nullptr;
     for (Py_ssize_t i = 0; i < size; ++i) {
         const auto &range = ranges.at(i);
-        PyObject *ob = PyTuple_Pack(2, rangeValueToPython(range.start),
-                                    rangeValueToPython(range.end));
+        Shiboken::AutoDecRef start(rangeValueToPython(range.start));
+        Shiboken::AutoDecRef end(rangeValueToPython(range.end));
+        if (start.isNull() || end.isNull()) {
+            Py_DECREF(%PYARG_0);
+            return nullptr;
+        }
+        PyObject *ob = PyTuple_Pack(2, start.object(), end.object());
+        if (ob == nullptr) {
+            Py_DECREF(%PYARG_0);
+            return nullptr;
+        }
         PyList_SetItem(%PYARG_0, i, ob);
     }
 } else {
@@ -88,13 +177,23 @@ if (rangesOpt.has_value()) {
 
 // @snippet qhttpheaders-setrangevalues
 const auto size = PySequence_Size(%PYARG_1);
-QList<QHttpHeaderRange> values;
+if (size < 0)
+    return nullptr;
+QList<HttpHeaderRange> values;
 values.reserve(size);
 for (Py_ssize_t i = 0; i < size; ++i) {
     Shiboken::AutoDecRef start(PySequence_GetItem(%PYARG_1, i));
+    if (start.isNull())
+        return nullptr;
     values.append(qHttpHeaderRangeFromSequence(start.object()));
+    if (PyErr_Occurred())
+        return nullptr;
 }
+#if QT_VERSION >= QT_VERSION_CHECK(6, 12, 0)
 %CPPSELF.%FUNCTION_NAME(values);
+#else
+setHttpHeaderRanges(*%CPPSELF, values);
+#endif
 // @snippet qhttpheaders-setrangevalues
 
 // @snippet qipv6address-len
